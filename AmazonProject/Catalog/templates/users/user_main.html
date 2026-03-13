@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>User Portal</title>
+    <style>
+        :root { --primary: #3b82f6; --inactive: #94a3b8; --bg: #f8fafc; --dark: #0f172a; }
+        body { margin: 0; background: var(--bg); font-family: -apple-system, sans-serif; padding-bottom: 120px; }
+        
+        /* CLEAN TOP NAV (No Logout) */
+        nav { 
+            background: white; 
+            padding: 15px 20px; 
+            display: flex; 
+            justify-content: center; /* Centered for a cleaner mobile look */
+            align-items: center; 
+            border-bottom: 1px solid #e2e8f0; 
+            position: sticky; 
+            top: 0; 
+            z-index: 1000; 
+        }
+        
+        .container { padding: 20px; display: flex; justify-content: center; }
+        .dashboard-card { background: white; width: 100%; max-width: 400px; border-radius: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); overflow: hidden; border: 1px solid #f1f5f9; }
+        
+        /* BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 25px; left: 15px; right: 15px; height: 70px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); display: flex; justify-content: space-around; align-items: center; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.12); z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--inactive); font-size: 11px; font-weight: 700; flex: 1; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 20px; margin-bottom: 4px; }
+        .nav-item.center-btn .nav-icon { background: var(--primary); color: white; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 18px; margin-top: -35px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); font-size: 24px; }
+
+        /* LOGOUT BUTTON STYLING (Used in Settings) */
+        .logout-container { padding: 20px; margin-top: 20px; }
+        .logout-btn-full { 
+            width: 100%;
+            background: #fff1f2; 
+            color: #e11d48; 
+            border: 1px solid #fecdd3; 
+            padding: 16px; 
+            border-radius: 16px; 
+            font-weight: 800; 
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .logout-btn-full:active { background: #ffe4e6; transform: scale(0.98); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 28px; height: 28px; background: var(--primary); border-radius: 7px;"></div>
+            <span style="font-weight: 800; color: var(--dark); letter-spacing: -0.5px;">{% block header_title %}PORTAL{% endblock %}</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="bottom-nav">
+        <a href="{% url 'user_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'user_dashboard' %}active{% endif %}">
+            <span class="nav-icon">🏠</span><span>Home</span></a>
+        <a href="{% url 'user_wallet' %}" class="nav-item {% if request.resolver_match.url_name == 'user_wallet' %}active{% endif %}">
+            <span class="nav-icon">👛</span><span>Wallet</span></a>
+        <a href="{% url 'user_order' %}" class="nav-item center-btn {% if request.resolver_match.url_name == 'user_order' %}active{% endif %}">
+            <span class="nav-icon">⚡</span><span>Order</span></a>
+        <a href="{% url 'user_record' %}" class="nav-item {% if request.resolver_match.url_name == 'user_record' %}active{% endif %}">
+            <span class="nav-icon">📋</span><span>Record</span></a>
+        <a href="{% url 'user_settings' %}" class="nav-item {% if request.resolver_match.url_name == 'user_settings' %}active{% endif %}">
+            <span class="nav-icon">⚙️</span><span>Settings</span></a>
+    </div>
+</body>
+</html>

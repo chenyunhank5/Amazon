@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add New User | Staff Panel</title>
+    <style>
+        /* Reusing your dashboard's theme */
+        body { 
+            margin: 0; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            min-height: 100vh; 
+            color: #2c3e50;
+            display: flex;
+            flex-direction: column;
+        }
+
+        nav {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 60px auto;
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .form-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h2 { margin-top: 0; color: #2c3e50; font-size: 24px; }
+        p.subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
+
+        /* Styling Django Form Fields */
+        .form-group { margin-bottom: 20px; }
+        
+        label { 
+            display: block; 
+            font-size: 13px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            color: #95a5a6; 
+            margin-bottom: 8px; 
+        }
+
+        input[type="text"], 
+        input[type="password"], 
+        input[type="number"], 
+        input[type="tel"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .helptext, .errorlist {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+            list-style: none;
+            padding: 0;
+        }
+        
+        .errorlist li { color: #e74c3c; }
+
+        .btn-block {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-blue { background: #3498db; color: white; }
+        .btn-blue:hover { background: #2980b9; transform: translateY(-1px); }
+
+        .btn-ghost {
+            background: transparent;
+            color: #95a5a6;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        .btn-ghost:hover { color: #2c3e50; }
+
+    </style>
+</head>
+<body>
+
+    <nav>
+        <h2 style="margin:0; font-size: 20px;">Staff Dashboard</h2>
+        <a href="{% url 'staffs' %}" style="text-decoration: none; color: #3498db; font-weight: bold; font-size: 14px;">&larr; Back to List</a>
+    </nav>
+
+    <div class="container">
+        <div class="form-card">
+            <h2>Create New User</h2>
+            <p class="subtitle">Enter account details to register a new customer.</p>
+
+            <form method="post">
+                {% csrf_token %}
+
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="helptext">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                            <ul class="errorlist">{{ field.errors }}</ul>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" name="phone" id="phone" placeholder="e.g. +123456789" required>
+                </div>
+
+                <button type="submit" class="btn-block btn-blue">Create Account</button>
+            </form>
+
+            <a href="{% url 'staffs' %}" class="btn-ghost">Cancel and return</a>
+        </div>
+    </div>
+
+</body>
+</html>

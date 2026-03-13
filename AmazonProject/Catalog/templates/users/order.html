@@ -1,0 +1,116 @@
+{% extends "users/user_main.html" %}
+
+{% block header_title %}SMART MATCH{% endblock %}
+
+{% block content %}
+<div id="pendingModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px);">
+    <div style="background: white; width: 100%; max-width: 340px; border-radius: 28px; padding: 35px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+        <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
+        <h3 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 800;">Pending Task Found</h3>
+        <p style="color: #64748b; font-size: 15px; margin: 15px 0 30px; line-height: 1.6;">
+            You have an <b>uncompleted task</b>. You must finish it before you can generate new matches.
+        </p>
+        <a href="{% url 'user_record' %}?status=pending" style="display: block; width: 100%; padding: 18px; background: #3b82f6; color: white; text-decoration: none; border-radius: 18px; font-weight: 700; font-size: 15px;">
+            Complete Task Now
+        </a>
+        <button onclick="closePendingModal()" style="margin-top: 20px; background: none; border: none; color: #94a3b8; font-weight: 600; font-size: 13px; cursor: pointer;">
+            Maybe Later
+        </button>
+    </div>
+</div>
+
+<div style="width: 100%; max-width: 400px; margin: 0 auto;">
+    <div style="background: white; padding: 15px 20px; border-radius: 20px; margin-bottom: 20px; border: 1px solid #f1f5f9;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 11px; font-weight: 700; color: #64748b;">PROGRESS</span>
+            <span style="font-size: 11px; font-weight: 800; color: #3b82f6;">{{ order_count }}/40</span>
+        </div>
+        <div style="width: 100%; background: #f1f5f9; height: 8px; border-radius: 10px; overflow: hidden;">
+            <div style="width: {% widthratio order_count 40 100 %}%; background: #3b82f6; height: 100%; transition: width 0.5s ease;"></div>
+        </div>
+    </div>
+
+    <div class="dashboard-card" style="text-align: center; padding: 45px 25px;">
+        <div id="statusIcon" style="width: 90px; height: 90px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px;">
+            <span id="emojiIcon" style="font-size: 45px;">⚡</span>
+        </div>
+
+        <h2 id="statusTitle" style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 800;">Smart Match</h2>
+        <p id="statusDesc" style="color: #64748b; font-size: 14px; margin: 12px 0 35px; line-height: 1.5;">
+            Ready to find your next high-commission task? Click the button below to start.
+        </p>
+
+        <button id="matchBtn" onclick="processMatch()" 
+            {% if order_count >= 40 %} disabled {% endif %}
+            style="width: 100%; padding: 20px; border-radius: 20px; border: none; 
+            background: {% if order_count >= 40 %}#cbd5e1{% else %}#3b82f6{% endif %}; 
+            color: white; font-weight: 800; font-size: 17px; cursor: pointer; transition: all 0.3s ease;">
+            {% if order_count >= 40 %} LIMIT REACHED {% else %} START MATCHING {% endif %}
+        </button>
+    </div>
+</div>
+
+<script>
+    const isPendingActive = {% if orders and orders.0.status == 'pending' %} true {% else %} false {% endif %};
+    const progressCount = {{ order_count|default:0 }};
+
+    function processMatch() {
+        const btn = document.getElementById('matchBtn');
+
+        // 1. Limit Check (Safety fallback)
+        if (progressCount >= 40) {
+            alert("Limit reached. Come back tomorrow!");
+            btn.disabled = true;
+            btn.innerText = "LIMIT REACHED";
+            btn.style.background = "#cbd5e1";
+            return;
+        }
+
+        // 2. Pending Check
+        if (isPendingActive) {
+            document.getElementById('pendingModal').style.display = 'flex';
+            return;
+        }
+
+        // 3. Success: Start Animation
+        runMatchingAnimation();
+    }
+
+    function runMatchingAnimation() {
+        const btn = document.getElementById('matchBtn');
+        const iconContainer = document.getElementById('statusIcon');
+        const title = document.getElementById('statusTitle');
+        const description = document.getElementById('statusDesc');
+
+        // Lock button immediately
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+        btn.innerText = "Searching...";
+        
+        iconContainer.innerHTML = '<div class="loading-spinner"></div>';
+        title.innerText = "Finding Merchants...";
+        description.innerText = "Our AI is connecting to global e-commerce servers for the best rates...";
+
+        // Forced 3-second delay to show the animation
+        setTimeout(() => {
+            window.location.href = "{% url 'start_matching' %}";
+        }, 3000);
+    }
+
+    function closePendingModal() {
+        document.getElementById('pendingModal').style.display = 'none';
+    }
+</script>
+
+<style>
+    .loading-spinner {
+        width: 45px; height: 45px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #matchBtn:disabled { cursor: not-allowed; }
+</style>
+{% endblock %}

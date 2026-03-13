@@ -1,0 +1,102 @@
+{% extends "users/user_main.html" %}
+
+{% block header_title %}TASK RECORDS{% endblock %}
+
+{% block content %}
+<div style="width: 100%; max-width: 400px; margin: 0 auto; padding-bottom: 50px;">
+    
+    {% if messages %}
+    <div style="margin-bottom: 15px;">
+        {% for message in messages %}
+            <div style="padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; margin-bottom: 10px; 
+                {% if message.tags == 'error' %} background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2;
+                {% else %} background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; {% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="dashboard-card" style="padding: 20px; margin-bottom: 20px; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+        <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Account Summary</h3>
+        <div style="text-align: center; padding: 10px 0;">
+            <div style="color: #94a3b8; font-size: 11px; font-weight: 700;">TOTAL AVAILABLE</div>
+            <div style="font-size: 32px; font-weight: 800; color: var(--dark); margin: 5px 0;">${{ profile.balance }}</div>
+            <div style="display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; background: #f0fdf4; color: #16a34a; border-radius: 20px; font-size: 11px; font-weight: 700;">
+                <span style="width: 6px; height: 6px; background: #16a34a; border-radius: 50%;"></span>
+                Member Active
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px;">
+        <a href="{% url 'user_record' %}" style="text-decoration: none; white-space: nowrap; padding: 8px 18px; border-radius: 12px; font-size: 12px; font-weight: 700; transition: 0.3s; {% if not current_status %} background: var(--primary); color: white; {% else %} background: white; color: #64748b; border: 1px solid #e2e8f0; {% endif %}">All</a>
+        <a href="{% url 'user_record' %}?status=pending" style="text-decoration: none; white-space: nowrap; padding: 8px 18px; border-radius: 12px; font-size: 12px; font-weight: 700; transition: 0.3s; {% if current_status == 'pending' %} background: var(--primary); color: white; {% else %} background: white; color: #64748b; border: 1px solid #e2e8f0; {% endif %}">Pending</a>
+        <a href="{% url 'user_record' %}?status=completed" style="text-decoration: none; white-space: nowrap; padding: 8px 18px; border-radius: 12px; font-size: 12px; font-weight: 700; transition: 0.3s; {% if current_status == 'completed' %} background: var(--primary); color: white; {% else %} background: white; color: #64748b; border: 1px solid #e2e8f0; {% endif %}">Completed</a>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+        {% for order in orders %}
+            
+            {% if order.status == 'pending' %}
+                <a href="{% if profile.balance < order.price %}{% url 'user_wallet' %}{% else %}{% url 'start_matching' %}{% endif %}" style="text-decoration: none; display: block;">
+            {% else %}
+                <div style="display: block; opacity: 0.8;"> 
+            {% endif %}
+
+                <div class="dashboard-card" style="padding: 15px; border: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+                    {% if order.status == 'pending' %} border-left: 4px solid #f59e0b; background: #fffdfa; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); {% endif %}">
+                    
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 45px; height: 45px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 18px;
+                            {% if order.status == 'completed' %} background: #f0fdf4; color: #16a34a;
+                            {% elif order.status == 'pending' %} background: #fffbeb; color: #d97706;
+                            {% else %} background: #f1f5f9; color: #64748b; {% endif %}">
+                            {% if order.status == 'completed' %}✅{% elif order.status == 'pending' %}⏳{% else %}📦{% endif %}
+                        </div>
+
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="font-size: 13px; font-weight: 800; color: var(--dark);">{{ order.product_name }}</div>
+                                {% if order.scheduled_at %}
+                                <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">#{{ order.scheduled_at }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; margin-top: 4px;">
+                                <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">Price: <span style="color: #64748b;">${{ order.price }}</span></div>
+                                <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">Profit: <span style="color: #10b981;">+${{ order.profit }}</span></div>
+                            </div>
+                            <div style="font-size: 9px; color: #cbd5e1; font-weight: 600; margin-top: 2px;">{{ order.created_at|date:"M d, H:i" }}</div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: right;">
+                        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px;
+                            {% if order.status == 'completed' %} color: #10b981; {% elif order.status == 'pending' %} color: #f59e0b; {% else %} color: #94a3b8; {% endif %}">
+                            {% if order.status == 'pending' and profile.balance < order.price %}
+                                <span style="color: #ef4444;">FROZEN</span>
+                            {% else %}
+                                {{ order.status }}
+                            {% endif %}
+                        </div>
+
+                        {% if order.status == 'pending' %}
+                            <div style="font-size: 8px; background: {% if profile.balance < order.price %}#ef4444{% else %}#0f172a{% endif %}; color: white; padding: 4px 8px; border-radius: 6px; font-weight: 800; text-transform: uppercase;">
+                                {% if profile.balance < order.price %}RECHARGE{% else %}SUBMIT{% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            {% if order.status == 'pending' %}</a>{% else %}</div>{% endif %}
+
+        {% empty %}
+            <div style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 40px; margin-bottom: 10px; opacity: 0.2;">📂</div>
+                <h4 style="margin: 0; color: #64748b; font-size: 14px;">No records found</h4>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

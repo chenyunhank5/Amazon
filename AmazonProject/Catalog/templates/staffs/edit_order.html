@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Order</title>
+</head>
+<body style="background: #f4f7f6; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0;">
+    <div style="background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+        <h2 style="margin: 0 0 5px 0; color: #2c3e50;">Edit Order #{{ order.id }}</h2>
+        <p style="color: #95a5a6; font-size: 13px; margin-bottom: 25px;">Update the manual values for this record.</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Product Name</label>
+                <input type="text" name="product_name" value="{{ order.product_name }}" required 
+                    style="width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Order Price ($)</label>
+                <input type="number" step="0.01" name="price" value="{{ order.price }}" required 
+                    style="width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Commission Rate (%)</label>
+                <input type="number" step="0.01" name="commission_rate" value="{{ order.commission_rate }}" required 
+                    style="width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+            </div>
+
+            <button type="submit" style="width: 100%; padding: 14px; background: #3498db; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                Save Changes
+            </button>
+        </form>
+    </div>
+</body>
+</html>

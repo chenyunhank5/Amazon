@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit User | Staff Panel</title>
+</head>
+<body style="margin:0; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; padding: 20px 0;">
+
+    <div style="background:white; padding:40px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.1); width:100%; max-width:480px; box-sizing: border-box;">
+        
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="margin:0; color:#2c3e50; font-size: 24px;">Edit Account</h2>
+            <p style="color:#7f8c8d; margin: 8px 0 0 0; font-size: 14px;">Updating details for <b>{{ user_to_edit.username }}</b></p>
+        </div>
+
+        {% if messages %}
+            {% for m in messages %}
+                <div style="padding:12px; background:#defadb; color:#27ae60; border-radius:6px; margin-bottom:20px; font-size:13px; text-align:center; border: 1px solid #c3e6cb;">
+                    {{ m }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <style>
+            .section-title {
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #95a5a6;
+                margin: 25px 0 15px 0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .section-title::after { content: ""; flex: 1; height: 1px; background: #eee; }
+            
+            label { display: block; font-size: 13px; font-weight: 600; color: #34495e; margin-bottom: 5px; }
+            
+            input[type="text"], input[type="password"], input[type="tel"], input[type="number"] {
+                width: 100%; 
+                padding: 12px; 
+                border: 1px solid #ddd; 
+                border-radius: 6px; 
+                box-sizing: border-box; 
+                font-size: 14px;
+                margin-bottom: 15px;
+                transition: all 0.3s;
+            }
+            input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+            
+            .btn {
+                width: 100%;
+                border: none;
+                padding: 14px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 14px;
+                transition: opacity 0.3s;
+            }
+            .btn:hover { opacity: 0.9; }
+            
+            .helptext { font-size: 11px; color: #95a5a6; display: block; margin-top: -10px; margin-bottom: 15px; line-height: 1.4; }
+            .info-box {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 12px;
+                margin-bottom: 20px;
+            }
+            .info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+            .info-label { color: #64748b; }
+            .info-value { color: #1e293b; font-weight: 700; }
+        </style>
+
+        <div class="info-box">
+            <div class="info-row">
+                <span class="info-label">Current Progress Setting:</span>
+                <span class="info-value" style="color: #3498db;">{{ user_to_edit.profile.current_progress }} / 40</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Total Completed Orders:</span>
+                <span class="info-value">{{ user_to_edit.orders.count }}</span>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="section-title">Basic Info & Progress</div>
+            
+            <label>Username</label>
+            <input type="text" name="username" value="{{ user_to_edit.username }}" required>
+            
+            <label>Phone Number</label>
+            <input type="tel" name="phone" value="{{ user_to_edit.profile.phone_number|default:'' }}" 
+                   pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '');" 
+                   placeholder="Enter digits only">
+
+            <label>Manual Order Progress</label>
+            <input type="number" name="current_progress" value="{{ user_to_edit.profile.current_progress }}" required>
+            <span class="helptext">
+                Type the exact number the user should see. <br>
+                Example: Type <b>39</b> to show 39/40.
+            </span>
+            
+            <button type="submit" name="update_info" class="btn" style="background: #3498db; color: white; margin-top: 10px;">
+                Save Profile & Progress
+            </button>
+        </form>
+
+        <div style="height: 10px;"></div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="section-title">Security</div>
+            
+            <div class="password-fields" style="font-size: 13px; color: #34495e;">
+                {{ password_form.as_p }}
+            </div>
+            
+            <button type="submit" name="update_password" class="btn" style="background: #9b59b6; color: white;">
+                Reset User Password
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{% url 'staffs' %}" style="color: #95a5a6; text-decoration: none; font-size: 14px; font-weight: 500;">
+                ← Cancel and Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login | User Portal</title>
+    <style>
+        body {
+            margin: 0;
+            /* Using a vertical-friendly gradient for phones */
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .login-card {
+            background: white;
+            padding: 30px 25px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .avatar-circle {
+            background: #667eea;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px auto;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        h2 {
+            margin: 0;
+            color: #1a202c;
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        p.subtitle {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 8px;
+            margin-bottom: 25px;
+        }
+
+        /* Django Form Styling */
+        form p {
+            text-align: left;
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #4a5568;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 16px; /* Larger padding for easier finger tapping */
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-sizing: border-box;
+            font-size: 16px; /* 16px prevents iOS from auto-zooming on focus */
+            background: #f8fafc;
+            transition: all 0.2s ease;
+            -webkit-appearance: none; /* Removes default iOS styling */
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .signin-btn {
+            width: 100%;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 16px;
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .signin-btn:active {
+            transform: scale(0.98);
+            background: #5a67d8;
+        }
+
+        .footer-link {
+            margin-top: 25px;
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .footer-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        /* Error Message Styling */
+        .error-msg {
+            padding: 12px;
+            background: #fff5f5;
+            color: #c53030;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border: 1px solid #feb2b2;
+        }
+
+        .helptext { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="avatar-circle">U</div>
+        <h2>User Login</h2>
+        <p class="subtitle">Enter details to access your portal</p>
+
+        {% if messages %}
+            {% for m in messages %}
+                <div class="error-msg">{{ m }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="signin-btn">Sign In</button>
+        </form>
+
+        <div class="footer-link">
+            Don't have account? <a href="{% url 'user_register' %}">Register</a>
+        </div>
+    </div>
+
+</body>
+</html>

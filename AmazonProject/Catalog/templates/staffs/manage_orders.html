@@ -1,0 +1,34 @@
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 style="margin:0;">Task Templates</h3>
+    <a href="{% url 'add_order_staff' %}" class="btn-sm btn-green" style="padding: 10px 20px;">+ Create New Template</a>
+</div>
+<p style="color:#7f8c8d; font-size:12px; margin-top:5px;">Products here are available to be "Matched" by users.</p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 45%;">Product Name</th>
+            <th>Price</th>
+            <th>Commission %</th>
+            <th style="text-align: right;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for o in task_templates %}
+        <tr>
+            <td><span class="truncate" title="{{ o.product_name }}">{{ o.product_name }}</span></td>
+            <td>${{ o.price }}</td>
+            <td style="color:#3498db; font-weight:bold;">{{ o.commission_rate }}%</td>
+            <td style="text-align: right;">
+                <a href="{% url 'edit_order_staff' o.id %}" class="btn-sm btn-blue">Edit</a>
+                <form action="{% url 'delete_order_staff' o.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-sm btn-red" style="border:none; cursor:pointer;" onclick="return confirm('Delete template?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center; padding: 30px; color:#94a3b8;">No templates found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>

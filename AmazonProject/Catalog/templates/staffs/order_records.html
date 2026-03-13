@@ -1,0 +1,97 @@
+<div style="display:flex; justify-content:space-between; align-items:center; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #edf2f7; margin-bottom: 20px;">
+    <div>
+        <h3 style="margin:0; color: #2c3e50;">Order Activity Logs</h3>
+        <p style="margin:5px 0 0; font-size:12px; color:#64748b;">Monitoring Trap, Pending, and Completed tasks across the system.</p>
+    </div>
+    <div style="text-align: right;">
+        <div style="font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase;">Total System Profit</div>
+        <div style="font-size: 24px; font-weight: 800; color: #27ae60;">${{ total_profit }}</div>
+    </div>
+</div>
+
+<div style="margin-bottom: 20px;">
+    <form method="get" action="{% url 'staffs' %}" style="display: flex; gap: 10px;">
+        <input type="hidden" name="tab" value="records">
+        <input type="text" name="order_search" 
+               style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px;" 
+               placeholder="Search by username or phone number..." 
+               value="{{ order_search_query }}">
+        
+        <button type="submit" class="btn-sm btn-blue">Filter Records</button>
+        
+        {% if order_search_query %}
+            <a href="{% url 'staffs' %}?tab=records" class="btn-sm btn-red" style="line-height: 2.2; text-align: center;">Clear Search</a>
+        {% endif %}
+    </form>
+</div>
+
+<div style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th>User / Phone</th>
+                <th>Type / Progress</th>
+                <th>Product Name</th>
+                <th>Price / Profit</th>
+                <th>Status</th>
+                <th style="text-align: right;">Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in user_logs %}
+            <tr>
+                <td>
+                    <div style="font-weight: 800; color: #2c3e50;">{{ log.user.username }}</div>
+                    <small style="color: #94a3b8; font-weight: 600;">{{ log.user.profile.phone_number|default:"No Phone" }}</small>
+                </td>
+
+                <td>
+                    {% if log.scheduled_at %}
+                        <span style="background: #fdf2f2; color: #e11d48; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; border: 1px solid #fecaca; display: inline-block; margin-bottom: 4px;">
+                            TRAP TASK #{{ log.scheduled_at }}
+                        </span>
+                    {% else %}
+                        <span style="background: #f0f9ff; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; border: 1px solid #bae6fd; display: inline-block; margin-bottom: 4px;">
+                            REGULAR MATCH
+                        </span>
+                    {% endif %}
+                    <div style="font-size: 11px; color: #64748b;">Progress: {{ log.user.profile.current_progress }}/40</div>
+                </td>
+
+                <td style="max-width: 200px;">
+                    <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;" title="{{ log.product_name }}">
+                        {{ log.product_name }}
+                    </div>
+                </td>
+
+                <td>
+                    <div style="font-size: 12px; color: #64748b;">Price: ${{ log.price }}</div>
+                    <div style="color: #10b981; font-weight: 700; font-size: 13px;">Profit: +${{ log.profit }}</div>
+                </td>
+
+                <td>
+                    {% if log.status == 'completed' %}
+                        <span class="badge badge-success" style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 20px; font-size: 10px;">COMPLETED</span>
+                    {% elif log.status == 'pending' %}
+                        <span class="badge badge-warning" style="background: #fef9c3; color: #a16207; padding: 4px 10px; border-radius: 20px; font-size: 10px;">PENDING</span>
+                    {% elif log.status == 'frozen' %}
+                        <span class="badge" style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 20px; font-size: 10px;">FROZEN</span>
+                    {% endif %}
+                </td>
+
+                <td style="text-align: right; color:#94a3b8; font-size: 11px; font-weight: 500;">
+                    {{ log.created_at|date:"M d, Y" }}<br>
+                    {{ log.created_at|date:"H:i" }}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align:center; padding:60px; color:#94a3b8;">
+                    <div style="font-size: 40px; margin-bottom: 10px;">📂</div>
+                    No order records found matching your criteria.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
