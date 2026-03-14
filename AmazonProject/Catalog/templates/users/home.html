@@ -3,9 +3,9 @@
 {% block header_title %}PLATFORM OVERVIEW{% endblock %}
 
 {% block content %}
-<div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 5px;">
+<div style="width: 100%; display: flex; flex-direction: column; align-items: center; padding: 0 5px;">
     
-    <div style="width: 100%; max-width: 400px; margin: 0 auto;">
+    <div style="width: 100%; max-width: 450px; margin: 0 auto;">
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
             <div class="dashboard-card" style="padding: 20px; text-align: left;">
@@ -13,7 +13,6 @@
                 <div style="font-size: 24px; font-weight: 800; color: var(--dark); margin-top: 5px;">12,842</div>
                 <div style="color: #10b981; font-size: 11px; font-weight: 700; margin-top: 5px;">↑ 14% this week</div>
             </div>
-            
             <div class="dashboard-card" style="padding: 20px; text-align: left;">
                 <div style="color: #94a3b8; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">ACTIVE TASKS</div>
                 <div style="font-size: 24px; font-weight: 800; color: var(--primary); margin-top: 5px;">4,109</div>
@@ -21,18 +20,22 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; transition: 0.2s;" onclick="alert('Company Bio: Established in 2024, we provide high-frequency matching services for global e-commerce.')">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer;" onclick="alert('Company Bio: Established in 2024, we provide high-frequency matching services for global e-commerce.')">
                 <div style="font-size: 20px; margin-bottom: 5px;">🏢</div>
-                <div style="font-size: 10px; font-weight: 800; color: var(--dark);">ABOUT US</div>
+                <div style="font-size: 9px; font-weight: 800; color: var(--dark);">ABOUT</div>
             </div>
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; transition: 0.2s;" onclick="alert('Platform Rules: 1. One account per user. 2. Daily limits reset at 00:00. 3. Minimum withdrawal $10.')">
+            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer;" onclick="alert('Platform Rules: 1. One account per user. 2. Daily limits reset at 00:00. 3. Minimum withdrawal $10.')">
                 <div style="font-size: 20px; margin-bottom: 5px;">📜</div>
-                <div style="font-size: 10px; font-weight: 800; color: var(--dark);">RULES</div>
+                <div style="font-size: 9px; font-weight: 800; color: var(--dark);">RULES</div>
             </div>
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; transition: 0.2s;" onclick="document.getElementById('certModal').style.display='flex'">
+            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer;" onclick="document.getElementById('certModal').style.display='flex'">
                 <div style="font-size: 20px; margin-bottom: 5px;">🛡️</div>
-                <div style="font-size: 10px; font-weight: 800; color: var(--dark);">CERTIFICATE</div>
+                <div style="font-size: 9px; font-weight: 800; color: var(--dark);">LICENSE</div>
+            </div>
+            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; margin-bottom: 5px;">🎧</div>
+                <div style="font-size: 9px; font-weight: 800; color: var(--dark);">SUPPORT</div>
             </div>
         </div>
 
@@ -41,39 +44,36 @@
                 <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--dark);">Market Volume</h3>
                 <span style="font-size: 11px; color: #94a3b8; font-weight: 700;">LAST 7 DAYS</span>
             </div>
-            
             <div style="height: 200px; width: 100%; position: relative;">
                 <canvas id="marketChart"></canvas>
             </div>
         </div>
 
-        <div class="dashboard-card" style="padding: 20px;">
+        <div class="dashboard-card" style="padding: 20px; margin-bottom: 20px;">
             <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 800; color: var(--dark);">Recent Platform Wins</h3>
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="display: flex; justify-content: space-between; font-size: 13px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
-                    <span style="color: #64748b;">User **ID_772**</span>
+                    <span style="color: #64748b;">User ID_772</span>
                     <span style="color: #10b981; font-weight: 700;">+$142.00</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 13px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
-                    <span style="color: #64748b;">User **ID_901**</span>
+                    <span style="color: #64748b;">User ID_901</span>
                     <span style="color: #10b981; font-weight: 700;">+$89.50</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <span style="color: #64748b;">User **ID_224**</span>
+                    <span style="color: #64748b;">User ID_224</span>
                     <span style="color: #10b981; font-weight: 700;">+$205.10</span>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
 <div id="certModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:20px;">
-    <div class="dashboard-card" style="max-width:350px; width:100%; padding:20px; text-align:center; position: relative;">
-        <h3 style="margin-top:0; color: var(--dark);">Platform License</h3>
-        <div style="width:100%; height:250px; background:white; border: 1px solid #e2e8f0; border-radius:12px; display:flex; align-items:center; justify-content:center; position: relative; overflow: hidden;">
-             <div style="position: absolute; width: 150px; height: 150px; border: 10px solid #f8fafc; border-radius: 50%; z-index: 0;"></div>
-             <div style="border: 8px double #cbd5e1; padding: 25px; color: #475569; position: relative; z-index: 1;">
+    <div class="dashboard-card" style="max-width:350px; width:100%; padding:20px; text-align:center;">
+        <h3 style="margin-top:0;">Platform License</h3>
+        <div style="width:100%; height:250px; background:white; border: 1px solid #e2e8f0; border-radius:12px; display:flex; align-items:center; justify-content:center; position: relative;">
+             <div style="border: 8px double #cbd5e1; padding: 25px; color: #475569;">
                  <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px;">OFFICIAL</div>
                  <div style="font-size: 20px; margin: 10px 0; font-weight: 900;">CERTIFICATE</div>
                  <div style="font-size: 8px; opacity: 0.6; font-weight: 700;">Verified Business License 2024-2026</div>
@@ -87,45 +87,29 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById('marketChart').getContext('2d');
-        
-        // Ensure no old charts exist
         let chartStatus = Chart.getChart("marketChart");
-        if (chartStatus !== undefined) {
-            chartStatus.destroy();
-        }
+        if (chartStatus !== undefined) { chartStatus.destroy(); }
 
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                 datasets: [{
-                    label: 'Market Volume',
                     data: [1200, 1900, 1500, 2500, 2200, 3000, 2800],
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     fill: true,
                     tension: 0.4,
-                    borderWidth: 3,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#3b82f6',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
+                    borderWidth: 3
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8', font: { size: 10, weight: '700' } }
-                    },
-                    y: {
-                        display: false
-                    }
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10, weight: '700' } } },
+                    y: { display: false }
                 }
             }
         });

@@ -284,7 +284,11 @@ def user_order(request):
 @login_required(login_url='user_login')
 def user_record(request):
     status_filter = request.GET.get('status')
-    orders = request.user.orders.exclude(status='scheduled').annotate(
+    
+    # ADDED .exclude(status__in=['withdrawal', 'withdrawn', 'rejected'])
+    orders = request.user.orders.exclude(
+        status__in=['scheduled', 'withdrawal', 'withdrawn', 'rejected']
+    ).annotate(
         priority=Case(
             When(status='pending', then=Value(1)),
             When(status='completed', then=Value(2)),
@@ -296,7 +300,11 @@ def user_record(request):
     if status_filter in ['pending', 'completed']:
         orders = orders.filter(status=status_filter)
         
-    return render(request, 'users/record.html', {'profile': request.user.profile, 'orders': orders, 'current_status': status_filter})
+    return render(request, 'users/record.html', {
+        'profile': request.user.profile, 
+        'orders': orders, 
+        'current_status': status_filter
+    })
 
 @login_required(login_url='user_login')
 def start_matching(request):

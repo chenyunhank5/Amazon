@@ -34,17 +34,12 @@
         <div id="statusIcon" style="width: 90px; height: 90px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px;">
             <span id="emojiIcon" style="font-size: 45px;">⚡</span>
         </div>
-
         <h2 id="statusTitle" style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 800;">Smart Match</h2>
         <p id="statusDesc" style="color: #64748b; font-size: 14px; margin: 12px 0 35px; line-height: 1.5;">
             Ready to find your next high-commission task? Click the button below to start.
         </p>
-
-        <button id="matchBtn" onclick="processMatch()" 
-            {% if order_count >= 40 %} disabled {% endif %}
-            style="width: 100%; padding: 20px; border-radius: 20px; border: none; 
-            background: {% if order_count >= 40 %}#cbd5e1{% else %}#3b82f6{% endif %}; 
-            color: white; font-weight: 800; font-size: 17px; cursor: pointer; transition: all 0.3s ease;">
+        <button id="matchBtn" onclick="processMatch()" {% if order_count >= 40 %} disabled {% endif %}
+            style="width: 100%; padding: 20px; border-radius: 20px; border: none; background: {% if order_count >= 40 %}#cbd5e1{% else %}#3b82f6{% endif %}; color: white; font-weight: 800; font-size: 17px; cursor: pointer; transition: all 0.3s ease;">
             {% if order_count >= 40 %} LIMIT REACHED {% else %} START MATCHING {% endif %}
         </button>
     </div>
@@ -56,23 +51,11 @@
 
     function processMatch() {
         const btn = document.getElementById('matchBtn');
-
-        // 1. Limit Check (Safety fallback)
-        if (progressCount >= 40) {
-            alert("Limit reached. Come back tomorrow!");
-            btn.disabled = true;
-            btn.innerText = "LIMIT REACHED";
-            btn.style.background = "#cbd5e1";
-            return;
-        }
-
-        // 2. Pending Check
+        if (progressCount >= 40) return;
         if (isPendingActive) {
             document.getElementById('pendingModal').style.display = 'flex';
             return;
         }
-
-        // 3. Success: Start Animation
         runMatchingAnimation();
     }
 
@@ -82,35 +65,21 @@
         const title = document.getElementById('statusTitle');
         const description = document.getElementById('statusDesc');
 
-        // Lock button immediately
         btn.disabled = true;
         btn.style.opacity = "0.7";
         btn.innerText = "Searching...";
-        
         iconContainer.innerHTML = '<div class="loading-spinner"></div>';
         title.innerText = "Finding Merchants...";
         description.innerText = "Our AI is connecting to global e-commerce servers for the best rates...";
 
-        // Forced 3-second delay to show the animation
-        setTimeout(() => {
-            window.location.href = "{% url 'start_matching' %}";
-        }, 3000);
+        setTimeout(() => { window.location.href = "{% url 'start_matching' %}"; }, 3000);
     }
 
-    function closePendingModal() {
-        document.getElementById('pendingModal').style.display = 'none';
-    }
+    function closePendingModal() { document.getElementById('pendingModal').style.display = 'none'; }
 </script>
 
 <style>
-    .loading-spinner {
-        width: 45px; height: 45px;
-        border: 5px solid #f3f3f3;
-        border-top: 5px solid #3b82f6;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
+    .loading-spinner { width: 45px; height: 45px; border: 5px solid #f3f3f3; border-top: 5px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #matchBtn:disabled { cursor: not-allowed; }
 </style>
 {% endblock %}
