@@ -23,3 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 ]
 
+from django.conf.urls import handler404
+
+# Point to a view that renders your template
+handler404 = 'Catalog.views.error_404_view'

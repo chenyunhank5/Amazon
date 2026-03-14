@@ -6,7 +6,8 @@ from decimal import Decimal
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) # Increased max_digits
+    wallet_address = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     current_progress = models.IntegerField(default=0)
 
@@ -15,25 +16,31 @@ class Profile(models.Model):
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('scheduled', 'Scheduled'),  # Hidden from user records until matched
+        ('scheduled', 'Scheduled'),
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('frozen', 'Frozen'),
+        ('withdrawal', 'Withdrawal Pending'), 
+        ('withdrawn', 'Withdrawn/Paid'),
+        ('rejected', 'Rejected'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True, blank=True)
     product_name = models.CharField(max_length=255)
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    profit = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    profit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) 
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=1.00)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     scheduled_at = models.IntegerField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        if self.price and self.commission_rate:
-            calc_profit = self.price * (self.commission_rate / Decimal('100'))
-            self.profit = calc_profit.quantize(Decimal('0.01'))
+        # FIX: Ensure everything is cast to Decimal to prevent "float / Decimal" error
+        if self.price is not None and self.commission_rate is not None:
+            price_dec = Decimal(str(self.price))
+            comm_dec = Decimal(str(self.commission_rate))
+            self.profit = (price_dec * comm_dec) / Decimal('100')
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -42,9 +49,8 @@ class Order(models.Model):
 @receiver(post_save, sender=User)
 def manage_user_profile(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance)
+        Profile.objects.get_or_create(user=instance)
     else:
-        if hasattr(instance, 'profile'):
-            instance.profile.save()
-        else:
-            Profile.objects.create(user=instance)
+        # Use get_or_create to be safer
+        Profile.objects.get_or_create(user=instance)
+        instance.profile.save()

