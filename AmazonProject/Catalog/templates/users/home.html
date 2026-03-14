@@ -1,68 +1,97 @@
 {% extends "users/user_main.html" %}
 
-{% block header_title %}PLATFORM OVERVIEW{% endblock %}
+{% block header_title %}CARREFOUR{% endblock %}
 
 {% block content %}
-<div style="width: 100%; display: flex; flex-direction: column; align-items: center; padding: 0 5px;">
-    
-    <div style="width: 100%; max-width: 450px; margin: 0 auto;">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-            <div class="dashboard-card" style="padding: 20px; text-align: left;">
-                <div style="color: #94a3b8; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">TOTAL USERS</div>
-                <div style="font-size: 24px; font-weight: 800; color: var(--dark); margin-top: 5px;">12,842</div>
-                <div style="color: #10b981; font-size: 11px; font-weight: 700; margin-top: 5px;">↑ 14% this week</div>
-            </div>
-            <div class="dashboard-card" style="padding: 20px; text-align: left;">
-                <div style="color: #94a3b8; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">ACTIVE TASKS</div>
-                <div style="font-size: 24px; font-weight: 800; color: var(--primary); margin-top: 5px;">4,109</div>
-                <div style="color: #64748b; font-size: 11px; font-weight: 700; margin-top: 5px;">Live Matching</div>
+<div style="width: 100%; display: flex; flex-direction: column; align-items: center; padding: 0 5px;">
+    <div style="width: 100%; max-width: 450px; margin: 0 auto;">
+        <div class="swiper" style="width: 100%; height: 180px; margin-bottom: 20px; overflow: hidden; border-radius: 12px;">
+            <div class="swiper-wrapper">
+                <div class="swiper-slide"><img src="https://clenorax.com/api//file/cfg/202510/09/85c776cbe26241c8b2f736d421fcd82f_.jpg" style="width:100%; height:100%; object-fit:cover;"></div>
+                <div class="swiper-slide"><img src="https://clenorax.com/api//file/cfg/202510/09/37b97e1e6d204ffeb543d2a3f0e30ecc_.jpg" style="width:100%; height:100%; object-fit:cover;"></div>
+                <div class="swiper-slide"><img src="https://clenorax.com/api//file/cfg/202510/09/b57668e6db434e9f81633930b7cb9fca_.jpg" style="width:100%; height:100%; object-fit:cover;"></div>
             </div>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer;" onclick="alert('Company Bio: Established in 2024, we provide high-frequency matching services for global e-commerce.')">
-                <div style="font-size: 20px; margin-bottom: 5px;">🏢</div>
-                <div style="font-size: 9px; font-weight: 800; color: var(--dark);">ABOUT</div>
+            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;" onclick="alert('Company Bio: High-frequency matching services.')">
+                <div style="font-size: 20px;">🏢</div><div style="font-size: 9px; font-weight: 800;">ABOUT</div>
             </div>
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer;" onclick="alert('Platform Rules: 1. One account per user. 2. Daily limits reset at 00:00. 3. Minimum withdrawal $10.')">
-                <div style="font-size: 20px; margin-bottom: 5px;">📜</div>
-                <div style="font-size: 9px; font-weight: 800; color: var(--dark);">RULES</div>
+            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;" onclick="alert('Rules: One account per user.')">
+                <div style="font-size: 20px;">📜</div><div style="font-size: 9px; font-weight: 800;">RULES</div>
             </div>
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer;" onclick="document.getElementById('certModal').style.display='flex'">
-                <div style="font-size: 20px; margin-bottom: 5px;">🛡️</div>
-                <div style="font-size: 9px; font-weight: 800; color: var(--dark);">LICENSE</div>
+            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;" onclick="document.getElementById('certModal').style.display='flex'">
+                <div style="font-size: 20px;">🛡️</div><div style="font-size: 9px; font-weight: 800;">LICENSE</div>
             </div>
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer;">
-                <div style="font-size: 20px; margin-bottom: 5px;">🎧</div>
-                <div style="font-size: 9px; font-weight: 800; color: var(--dark);">SUPPORT</div>
+            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;">
+                <div style="font-size: 20px;">🎧</div><div style="font-size: 9px; font-weight: 800;">SUPPORT</div>
             </div>
         </div>
 
-        <div class="dashboard-card" style="padding: 20px; margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--dark);">Market Volume</h3>
-                <span style="font-size: 11px; color: #94a3b8; font-weight: 700;">LAST 7 DAYS</span>
+        <div class="dashboard-card" style="padding: 20px; margin-bottom: 20px; border-radius: 16px; background: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: 800; color: #1e293b; text-transform: uppercase;">{{ user.username }} Performance</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <div style="text-align: center; padding: 10px; background: #f8fafc; border-radius: 10px;">
+                    <div style="font-size: 8px; color: #94a3b8; font-weight: 700;">BALANCE</div>
+                    <div style="font-size: 14px; font-weight: 800; color: #3b82f6;">${{ profile.balance|default:0|floatformat:2 }}</div>
+                </div>
+                <div style="text-align: center; padding: 10px; background: #f8fafc; border-radius: 10px;">
+                    <div style="font-size: 8px; color: #94a3b8; font-weight: 700;">TOTAL EARNED</div>
+                    <div style="font-size: 14px; font-weight: 800; color: #10b981;">${{ profile.total_earned|default:0|floatformat:2 }}</div>
+                </div>
             </div>
-            <div style="height: 200px; width: 100%; position: relative;">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 8px; color: #94a3b8; font-weight: 700;">TODAY</div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${{ earned_today|default:0|floatformat:2 }}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 8px; color: #94a3b8; font-weight: 700;">YESTERDAY</div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${{ earned_yesterday|default:0|floatformat:2 }}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 8px; color: #94a3b8; font-weight: 700;">MONTH</div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${{ earned_this_month|default:0|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card" style="padding: 20px; margin-bottom: 20px; border-radius: 16px; background: #fff; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: 800; color: #1e293b; text-transform: uppercase;">Platform Overview</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div style="text-align: center; padding: 15px; background: #f1f5f9; border-radius: 12px;">
+                    <div style="color: #64748b; font-size: 10px; font-weight: 700;">TOTAL USERS</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #1e293b;">12,842</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f1f5f9; border-radius: 12px;">
+                    <div style="color: #64748b; font-size: 10px; font-weight: 700;">ACTIVE TASKS</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #3b82f6;">4,109</div>
+                </div>
+            </div>
+            <div style="height: 150px; width: 100%;">
+                <div style="font-size: 10px; color: #94a3b8; font-weight: 700; margin-bottom: 5px;">MARKET VOLUME</div>
                 <canvas id="marketChart"></canvas>
             </div>
         </div>
 
-        <div class="dashboard-card" style="padding: 20px; margin-bottom: 20px;">
-            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 800; color: var(--dark);">Recent Platform Wins</h3>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                <div style="display: flex; justify-content: space-between; font-size: 13px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
-                    <span style="color: #64748b;">User ID_772</span>
-                    <span style="color: #10b981; font-weight: 700;">+$142.00</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 13px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
-                    <span style="color: #64748b;">User ID_901</span>
-                    <span style="color: #10b981; font-weight: 700;">+$89.50</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <span style="color: #64748b;">User ID_224</span>
-                    <span style="color: #10b981; font-weight: 700;">+$205.10</span>
+        <div class="dashboard-card" style="padding: 20px; margin-bottom: 20px; border-radius: 12px; background: #fff;">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 800;">Live Rewards</h3>
+            <div style="height: 120px; overflow: hidden; position: relative;">
+                <div class="marquee-content" style="position: absolute; width: 100%; animation: scrollUp 10s linear infinite;">
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        {% for i in "1234567"|make_list %}
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid #f1f5f9; padding: 5px 0;">
+                            <span style="color: #64748b;">User ID_88{{ i }}</span>
+                            <span style="color: #10b981; font-weight: 700;">+$4{{ i }}.00</span>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -70,49 +99,20 @@
 </div>
 
 <div id="certModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:20px;">
-    <div class="dashboard-card" style="max-width:350px; width:100%; padding:20px; text-align:center;">
+    <div class="dashboard-card" style="max-width:350px; width:100%; padding:20px; text-align:center; background: white; border-radius: 16px;">
         <h3 style="margin-top:0;">Platform License</h3>
-        <div style="width:100%; height:250px; background:white; border: 1px solid #e2e8f0; border-radius:12px; display:flex; align-items:center; justify-content:center; position: relative;">
-             <div style="border: 8px double #cbd5e1; padding: 25px; color: #475569;">
-                 <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px;">OFFICIAL</div>
-                 <div style="font-size: 20px; margin: 10px 0; font-weight: 900;">CERTIFICATE</div>
-                 <div style="font-size: 8px; opacity: 0.6; font-weight: 700;">Verified Business License 2024-2026</div>
-             </div>
-        </div>
         <button onclick="document.getElementById('certModal').style.display='none'" style="margin-top:20px; width:100%; padding:15px; background:var(--primary); color:white; border:none; border-radius:12px; font-weight:800; cursor: pointer;">CLOSE</button>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('marketChart').getContext('2d');
-        let chartStatus = Chart.getChart("marketChart");
-        if (chartStatus !== undefined) { chartStatus.destroy(); }
+<style> @keyframes scrollUp { 0% { transform: translateY(0); } 100% { transform: translateY(-200px); } } </style>
 
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    data: [1200, 1900, 1500, 2500, 2200, 3000, 2800],
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10, weight: '700' } } },
-                    y: { display: false }
-                }
-            }
-        });
+<script>
+    new Swiper('.swiper', { loop: true, autoplay: { delay: 3000 }, grabCursor: true });
+    new Chart(document.getElementById('marketChart').getContext('2d'), {
+        type: 'line',
+        data: { labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'], datasets: [{ data: [1200, 1900, 1500, 2500, 2200, 3000, 2800], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] },
+        options: { responsive: true, maintainAspectRatio: false }
     });
 </script>
 {% endblock %}

@@ -11,6 +11,8 @@ from django.db.models import Q, Sum, Case, When, Value, IntegerField
 from django.db import transaction
 from django.urls import reverse
 from django.core.paginator import Paginator
+from django.utils import timezone
+from datetime import timedelta
 
 from .models import Profile, Order
 from .forms import UserRegistrationForm
@@ -19,9 +21,32 @@ from .forms import UserRegistrationForm
 # 1. GENERAL & AUTHENTICATION
 # ==========================================
 
+@login_required(login_url='user_login')
 def home(request):
-    return render(request, 'home.html')
+    profile = request.user.profile
+    now = timezone.now()
+    today = now.date()
+    yesterday = today - timedelta(days=1)
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
+    # Use this to see exactly what is being grabbed
+    all_completed = Order.objects.filter(user=request.user, status='completed')
+    
+    # Debug: Check if orders even have dates
+    # You can print this in your terminal to see if dates are None
+    # print(all_completed.values_list('created_at', flat=True))
+
+    earned_today = all_completed.filter(created_at__date=today).aggregate(Sum('profit'))['profit__sum'] or 0
+    earned_yesterday = all_completed.filter(created_at__date=yesterday).aggregate(Sum('profit'))['profit__sum'] or 0
+    earned_this_month = all_completed.filter(created_at__gte=start_of_month).aggregate(Sum('profit'))['profit__sum'] or 0
+
+    return render(request, 'users/home.html', {
+        'profile': profile,
+        'earned_today': earned_today,
+        'earned_yesterday': earned_yesterday,
+        'earned_this_month': earned_this_month
+    })
+    
 def staff_login(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -382,20 +407,36 @@ def start_matching(request):
 def complete_order(request, order_id):
     if request.method == 'POST':
         with transaction.atomic():
+            # Lock the order and the user profile to prevent race conditions
             order = get_object_or_404(Order.objects.select_for_update(), id=order_id, user=request.user)
             profile = request.user.profile
-            if order.status == 'completed': return redirect('user_order')
+            
+            # Check if order is already completed
+            if order.status == 'completed': 
+                return redirect('user_order')
+            
+            # Check balance
             if profile.balance < order.price:
                 messages.error(request, "Insufficient funds.")
                 return redirect(f"{reverse('user_record')}?status=pending")
 
+            # 1. Update Balance
             profile.balance += order.profit 
+            
+            # 2. Update Total Earned (This will now work after your migration)
+            profile.total_earned += order.profit 
+            
+            # 3. Update Order Status
             order.status = 'completed'
             order.save()
+            
+            # 4. Update Progress
             profile.current_progress += 1
             profile.save()
+            
             messages.success(request, f"Profit: ${order.profit}")
             return redirect('user_order')
+            
     return redirect('user_record')
 
 # ==========================================

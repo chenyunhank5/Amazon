@@ -9,10 +9,13 @@ class Profile(models.Model):
     wallet_address = models.CharField(max_length=255, blank=True, null=True)
     network = models.CharField(max_length=50, default='ETH_USDC')
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) 
-    wallet_address = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
+    total_earned = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     current_progress = models.IntegerField(default=0)
     
+    # Timestamps for tracking
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
@@ -38,12 +41,10 @@ class Order(models.Model):
     scheduled_at = models.IntegerField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        # FIX: Ensure everything is cast to Decimal to prevent "float / Decimal" error
         if self.price is not None and self.commission_rate is not None:
             price_dec = Decimal(str(self.price))
             comm_dec = Decimal(str(self.commission_rate))
             self.profit = (price_dec * comm_dec) / Decimal('100')
-        
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -54,6 +55,5 @@ def manage_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.get_or_create(user=instance)
     else:
-        # Use get_or_create to be safer
         Profile.objects.get_or_create(user=instance)
         instance.profile.save()

@@ -1,6 +1,8 @@
 import os
 import dj_database_url
 from pathlib import Path
+CODESPACE_NAME = os.getenv('CODESPACE_NAME')
+CODESPACE_DOMAIN = os.getenv('GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -71,7 +73,9 @@ DATABASES = {
 # --- CORS & SECURITY SETTINGS ---
 # This allows your Wix site to access your Django data
 CORS_ALLOW_ALL_ORIGINS = True 
-CSRF_TRUSTED_ORIGINS = ["https://*.railway.app", "https://*.wixsite.com"]
+CSRF_TRUSTED_ORIGINS = ["https://*.railway.app", "https://*.wixsite.com", "http://localhost:8000", "https://localhost:8000"]
+if CODESPACE_NAME and CODESPACE_DOMAIN:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{CODESPACE_NAME}-8000.{CODESPACE_DOMAIN}')
 
 # --- PASSWORD VALIDATION ---
 AUTH_PASSWORD_VALIDATORS = []
