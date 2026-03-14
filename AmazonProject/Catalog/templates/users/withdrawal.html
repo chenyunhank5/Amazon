@@ -1,0 +1,36 @@
+<div class="withdrawal-container" style="max-width: 500px; margin: 20px auto; padding: 20px; font-family: sans-serif;">
+    <h2 style="text-align: center; color: #333;">Withdraw Crypto</h2>
+    
+    <div style="background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+        <p style="margin: 0; color: #64748b; font-size: 14px;">Available Balance</p>
+        <h1 style="margin: 5px 0; color: #27ae60;">${{ profile.balance }}</h1>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Select Network</label>
+        <select name="network" required style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <option value="USDT_TRC20">USDT (TRC20) - Fast & Low Fee</option>
+            <option value="USDT_ERC20">USDT (ERC20)</option>
+            <option value="BTC">Bitcoin (BTC)</option>
+        </select>
+
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Wallet Address</label>
+        <input type="text" name="wallet_address" placeholder="Enter your destination address" 
+               value="{{ profile.wallet_address|default:'' }}" required
+               style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Withdrawal Amount ($)</label>
+        <input type="number" name="amount" step="0.01" min="10" placeholder="0.00" required
+               style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+
+        <button type="submit" style="width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+            Submit Withdrawal Request
+        </button>
+    </form>
+
+    <div style="margin-top: 20px; padding: 15px; background: #fff4e5; border-left: 4px solid #f39c12; font-size: 13px; color: #856404;">
+        <b>Note:</b> Withdrawals are processed within 24 hours. Please double-check your wallet address; crypto transfers are irreversible.
+    </div>
+</div>

@@ -1,0 +1,81 @@
+<div id="withdrawals-tab" class="tab-content">
+    <h3>Withdrawal Requests</h3>
+    
+    <form method="get" style="display: flex; gap: 5px; margin-bottom: 15px;">
+        <input type="hidden" name="tab" value="withdrawals">
+        <input type="text" name="withdrawal_search" placeholder="Search name or phone..." value="{{ withdrawal_search_query }}" style="padding:8px; border:1px solid #ddd; border-radius:4px; flex: 1;">
+        <button type="submit" class="btn-sm btn-blue">Search</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>User / Contact</th>
+                <th>Crypto Network & Address</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for w in withdrawal_logs %}
+            <tr>
+                <td>
+                    <b>{{ w.user.username }}</b><br>
+                    <small style="color:#64748b;">{{ w.user.profile.phone_number }}</small>
+                </td>
+                <td>
+                    <div style="font-size: 12px; font-weight: 700; color: #1e293b;">
+                        {{ w.product_name }}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span id="addr_{{ w.id }}" style="font-size: 11px; color: #3b82f6; font-family: monospace; word-break: break-all; max-width: 180px;">
+                            {{ w.user.profile.wallet_address|default:"No Address" }}
+                        </span>
+                        {% if w.user.profile.wallet_address %}
+                        <button onclick="copyToClipboard('{{ w.user.profile.wallet_address }}', this)" 
+                                style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0;" title="Copy Address">
+                            📋
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+                <td style="color:#e74c3c; font-weight:bold;">-${{ w.price }}</td>
+                <td>
+                    <span class="badge 
+                        {% if w.status == 'withdrawn' %}badge-success
+                        {% elif w.status == 'withdrawal' %}badge-warning
+                        {% elif w.status == 'rejected' %}badge-red
+                        {% else %}badge-secondary{% endif %}">
+                        {% if w.status == 'withdrawal' %}PENDING
+                        {% elif w.status == 'withdrawn' %}SUCCESS
+                        {% elif w.status == 'rejected' %}REJECTED
+                        {% else %}{{ w.status|upper }}{% endif %}
+                    </span>
+                </td>
+                <td style="text-align: right; white-space: nowrap;">
+                    {% if w.status == 'withdrawal' %}
+                        <a href="{% url 'approve_withdrawal' w.id %}" class="btn-sm" style="background:#27ae60; color:white; text-decoration:none; display:inline-block; padding: 5px 8px; border-radius: 4px;">Approve</a>
+                        <a href="{% url 'reject_withdrawal' w.id %}" class="btn-sm btn-red" style="text-decoration:none; display:inline-block; margin-left:3px; padding: 5px 8px; border-radius: 4px;" onclick="return confirm('Refund funds and reject this request?')">Reject</a>
+                    {% elif w.status == 'withdrawn' %}
+                        <span style="color:#27ae60; font-size:12px; font-weight:bold;">✅ Success</span>
+                    {% elif w.status == 'rejected' %}
+                        <span style="color:#e74c3c; font-size:12px; font-weight:bold;">❌ Refunded</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    </div>
+
+<script>
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = "✅";
+        setTimeout(() => { btn.innerText = "📋"; }, 2000);
+    });
+}
+</script>

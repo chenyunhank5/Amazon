@@ -1,0 +1,96 @@
+<div id="records-tab" class="tab-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <div>
+            <h3 style="margin:0;">Order Logs</h3>
+            <p style="font-size: 12px; color: #64748b; margin: 0;">History of all matched tasks.</p>
+        </div>
+        <div style="text-align:right">
+            <div style="font-size: 11px; color: #64748b; font-weight: bold;">TOTAL TASK PROFIT</div>
+            <div style="font-size: 18px; font-weight: 800; color: #27ae60;">+${{ total_profit }}</div>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px;">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="hidden" name="tab" value="records">
+            <input type="text" name="order_search" placeholder="Search username or phone..." 
+                   value="{{ order_search_query }}" 
+                   style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <button type="submit" class="btn-sm btn-blue" style="padding: 0 20px;">Filter Logs</button>
+            {% if order_search_query %}
+                <a href="?tab=records" class="btn-sm" style="background:#64748b; color:white; text-decoration:none; display:flex; align-items:center; padding: 0 15px;">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Product</th>
+                <th>Commission</th> 
+                <th>Status</th>
+                <th>Date</th>
+                <th style="text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in user_logs %}
+            <tr>
+                <td>
+                    <b>{{ log.user.username }}</b><br>
+                    <small style="color:#94a3b8;">{{ log.user.profile.phone_number }}</small>
+                </td>
+                <td>
+                    <small style="display:block; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ log.product_name }}">
+                        {{ log.product_name }}
+                    </small>
+                </td>
+                <td style="color:#27ae60; font-weight:bold;">+${{ log.profit }}</td>
+                <td>
+                    <span class="badge {% if log.status == 'completed' %}badge-success{% else %}badge-warning{% endif %}">
+                        {{ log.status|upper }}
+                    </span>
+                </td>
+                <td style="color:#94a3b8; font-size: 11px;">
+                    {{ log.created_at|date:"M d, Y" }}
+                </td>
+                <td style="text-align: right;">
+                    <a href="{% url 'delete_order_record' log.id %}" 
+                       class="btn-sm btn-red" 
+                       style="text-decoration: none; display: inline-block; padding: 5px 10px; font-size: 11px;"
+                       onclick="return confirm('Delete this specific task record?')">
+                        Delete
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align:center; padding:50px; color:#94a3b8;">No task records found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if user_logs.has_other_pages %}
+    <div style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 15px;">
+        {% if user_logs.has_previous %}
+            <a href="?log_page={{ user_logs.previous_page_number }}{% if order_search_query %}&order_search={{ order_search_query }}{% endif %}&tab=records" 
+               class="btn-sm" style="background: #3498db; color:white; text-decoration:none; padding: 5px 12px; border-radius: 4px;">&laquo; Previous</a>
+        {% else %}
+            <span class="btn-sm" style="background: #e2e8f0; color: #94a3b8; cursor: not-allowed; padding: 5px 12px; border-radius: 4px;">&laquo; Previous</span>
+        {% endif %}
+
+        <span style="font-size: 14px; color: #475569; font-weight: 600;">
+            Page {{ user_logs.number }} of {{ user_logs.paginator.num_pages }}
+        </span>
+
+        {% if user_logs.has_next %}
+            <a href="?log_page={{ user_logs.next_page_number }}{% if order_search_query %}&order_search={{ order_search_query }}{% endif %}&tab=records" 
+               class="btn-sm" style="background: #3498db; color:white; text-decoration:none; padding: 5px 12px; border-radius: 4px;">Next &raquo;</a>
+        {% else %}
+            <span class="btn-sm" style="background: #e2e8f0; color: #94a3b8; cursor: not-allowed; padding: 5px 12px; border-radius: 4px;">Next &raquo;</span>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
