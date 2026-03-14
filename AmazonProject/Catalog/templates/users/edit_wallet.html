@@ -1,0 +1,36 @@
+{% extends "users/user_main.html" %}
+
+{% block header_title %}EDIT WALLET{% endblock %}
+
+{% block content %}
+<div style="width: 100%; max-width: 400px;">
+    <div class="dashboard-card" style="padding: 24px;">
+        <h3 style="margin-top:0;">Update Wallet</h3>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">
+            Ensure your address and network match to avoid loss of funds.
+        </p>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <label style="font-weight: 600; font-size: 14px;">Select Network</label>
+            <select name="network" style="width: 100%; padding: 14px; margin: 10px 0 20px 0; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px;">
+                <option value="ETH_USDC" {% if profile.network == 'ETH_USDC' %}selected{% endif %}>USDC (Ethereum - ERC20)</option>
+                <option value="ETH_ETH" {% if profile.network == 'ETH_ETH' %}selected{% endif %}>Ethereum (ETH)</option>
+                <option value="BTC_BTC" {% if profile.network == 'BTC_BTC' %}selected{% endif %}>Bitcoin (BTC)</option>
+                <option value="USDT_TRC20" {% if profile.network == 'USDT_TRC20' %}selected{% endif %}>USDT (Tron - TRC20)</option>
+            </select>
+
+            <label style="font-weight: 600; font-size: 14px;">Wallet Address</label>
+            <input type="text" name="wallet_address" value="{{ profile.wallet_address }}" 
+                   placeholder="Enter your crypto address" required
+                   style="width: 100%; padding: 14px; margin: 10px 0 20px 0; border: 2px solid #e2e8f0; border-radius: 12px;">
+            
+            <div style="display: flex; gap: 10px;">
+                <a href="{% url 'user_settings' %}" style="flex:1; padding:15px; text-align:center; text-decoration:none; background:#f1f5f9; color:#64748b; border-radius:12px; font-weight:700;">Cancel</a>
+                <button type="submit" style="flex:1; padding:15px; border:none; background:var(--primary); color:white; border-radius:12px; font-weight:700; cursor:pointer;">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

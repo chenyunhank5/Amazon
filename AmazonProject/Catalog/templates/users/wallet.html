@@ -8,9 +8,7 @@
     <div class="dashboard-card" style="padding: 30px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; margin-bottom: 20px; border-radius: 20px;">
         <div style="font-size: 12px; font-weight: 600; opacity: 0.9; text-transform: uppercase;">Current Balance</div>
         <div style="font-size: 36px; font-weight: 800; margin: 10px 0;">${{ profile.balance }}</div>
-        <div style="font-size: 11px; background: rgba(255,255,255,0.2); display: inline-block; padding: 4px 10px; border-radius: 10px;">
-            Standard Account
-        </div>
+        <div style="font-size: 11px; background: rgba(255,255,255,0.2); display: inline-block; padding: 4px 10px; border-radius: 10px;">Standard Account</div>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
@@ -27,46 +25,42 @@
     <div style="margin-top: 30px;">
         <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #1e293b; font-weight: 800;">WITHDRAWAL HISTORY</h4>
         
-        {% if user.orders.all %}
-            {% for order in user.orders.all|dictsortreversed:"created_at" %}
-                {# FILTER: Only show withdrawal, withdrawn, or rejected records #}
-                {% if order.status in 'withdrawal,withdrawn,rejected' %}
-                <div style="background: white; padding: 15px; border-radius: 18px; border: 1px solid #f1f5f9; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="background: #f8fafc; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                            {% if order.status == 'rejected' %}❌{% else %}↘{% endif %}
-                        </div>
-                        <div>
-                            <div style="font-size: 13px; font-weight: 700; color: #1e293b;">{{ order.product_name }}</div>
-                            <div style="font-size: 10px; color: #94a3b8;">{{ order.created_at|date:"M d, Y" }}</div>
-                        </div>
+        {% for order in withdrawals %}
+            <div style="background: white; padding: 15px; border-radius: 18px; border: 1px solid #f1f5f9; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="background: #f8fafc; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                        {% if order.status == 'rejected' %}❌{% else %}↘{% endif %}
                     </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 14px; font-weight: 800; color: #1e293b;">
-                            ${{ order.price }}
-                        </div>
-                        
-                        {# STATUS LABELS #}
-                        <span style="font-size: 9px; padding: 3px 10px; border-radius: 20px; font-weight: 700; text-transform: uppercase;
-                            {% if order.status == 'withdrawn' %} background: #dcfce7; color: #166534;
-                            {% elif order.status == 'withdrawal' %} background: #fef9c3; color: #854d0e;
-                            {% else %} background: #fee2e2; color: #991b1b; {% endif %}">
-                            
-                            {% if order.status == 'withdrawal' %}
-                                Pending
-                            {% elif order.status == 'withdrawn' %}
-                                Success
-                            {% elif order.status == 'rejected' %}
-                                Rejected
-                            {% endif %}
-                        </span>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; color: #1e293b;">{{ order.product_name }}</div>
+                        <div style="font-size: 10px; color: #94a3b8;">{{ order.created_at|date:"M d, Y" }}</div>
                     </div>
                 </div>
-                {% endif %}
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; padding: 40px; color: #94a3b8; font-size: 12px;">No records.</div>
-        {% endif %}
+                <div style="text-align: right;">
+                    <div style="font-size: 14px; font-weight: 800; color: #1e293b;">${{ order.price }}</div>
+                    <span style="font-size: 9px; padding: 3px 10px; border-radius: 20px; font-weight: 700; text-transform: uppercase;
+                        {% if order.status == 'withdrawn' %} background: #dcfce7; color: #166534;
+                        {% elif order.status == 'withdrawal' %} background: #fef9c3; color: #854d0e;
+                        {% else %} background: #fee2e2; color: #991b1b; {% endif %}">
+                        {% if order.status == 'withdrawal' %}Pending{% elif order.status == 'withdrawn' %}Success{% else %}Rejected{% endif %}
+                    </span>
+                </div>
+            </div>
+        {% empty %}
+            <div style="text-align: center; padding: 40px; color: #94a3b8; font-size: 12px;">No records found.</div>
+        {% endfor %}
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            {% if withdrawals.has_previous %}
+                <a href="?page={{ withdrawals.previous_page_number }}" style="text-decoration: none; font-size: 12px; font-weight: 700; color: #3b82f6;">← Prev</a>
+            {% else %} <span style="color: #cbd5e1; font-size: 12px;">← Prev</span> {% endif %}
+            
+            <span style="font-size: 12px; font-weight: 600; color: #64748b;">{{ withdrawals.number }} / {{ withdrawals.paginator.num_pages }}</span>
+            
+            {% if withdrawals.has_next %}
+                <a href="?page={{ withdrawals.next_page_number }}" style="text-decoration: none; font-size: 12px; font-weight: 700; color: #3b82f6;">Next →</a>
+            {% else %} <span style="color: #cbd5e1; font-size: 12px;">Next →</span> {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -5,59 +5,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Withdraw Crypto | Portal</title>
     <style>
-        :root { --primary: #3b82f6; --inactive: #94a3b8; --bg: #f8fafc; --dark: #0f172a; --nav-height: 70px; }
+        :root { --primary: #3b82f6; --inactive: #94a3b8; --bg: #f8fafc; --dark: #0f172a; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; background: var(--bg); font-family: -apple-system, system-ui, sans-serif; padding-bottom: 120px; color: var(--dark); }
+        body { margin: 0; background: var(--bg); font-family: -apple-system, system-ui, sans-serif; padding-bottom: 40px; color: var(--dark); }
 
-        nav { background: white; padding: 20px; display: flex; justify-content: center; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1000; }
+        nav { background: white; padding: 20px; text-align: center; border-bottom: 1px solid #e2e8f0; }
         .container { padding: 20px; max-width: 500px; margin: 0 auto; }
         
-        input, select { width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 16px; font-size: 17px; margin: 8px 0 16px 0; }
-        button { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 18px; font-weight: 800; font-size: 18px; cursor: pointer; }
+        .back-link { display: inline-flex; align-items: center; gap: 8px; color: var(--inactive); text-decoration: none; font-weight: 600; margin-bottom: 20px; font-size: 14px; }
+        .balance-card { background: white; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; text-align: center; margin-bottom: 20px; }
+        .card { background: white; padding: 24px; border-radius: 28px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
-        /* Bottom Nav */
-        .bottom-nav { position: fixed; bottom: 25px; left: 15px; right: 15px; height: var(--nav-height); background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); display: flex; justify-content: space-around; align-items: center; border-radius: 22px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); z-index: 9999; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--inactive); font-size: 11px; font-weight: 700; flex: 1; }
-        .nav-icon { font-size: 22px; margin-bottom: 2px; }
-        .center-btn { position: relative; }
-        .center-btn .nav-icon { position: absolute; top: -20px; background: var(--primary); color: white; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; border-radius: 18px; border: 4px solid white; font-size: 26px; }
-        .center-btn span:last-child { margin-top: 38px; }
+        input { width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 16px; font-size: 16px; margin: 8px 0 16px 0; background: #fff; }
+        .locked-input { background: #f8fafc; color: #64748b; cursor: not-allowed; border: 1px solid #e2e8f0; }
+        
+        button { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <nav>
-        <span style="font-weight: 800;">WITHDRAWAL</span>
-    </nav>
+    <nav><span style="font-weight: 800; letter-spacing: 1px;">WITHDRAWAL</span></nav>
 
     <main class="container">
-        <div style="margin-bottom: 20px;">
-            <a href="{% url 'user_wallet' %}" style="text-decoration: none; color: var(--inactive); font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 20px;">←</span> Back to Wallet
-            </a>
+        <a href="{% url 'user_wallet' %}" class="back-link">← Back to Wallet</a>
+        
+        <div class="balance-card">
+            <div style="font-size: 14px; color: var(--inactive); font-weight: 600;">Available Balance</div>
+            <div style="font-size: 42px; font-weight: 800; color: var(--dark); margin: 10px 0;">${{ profile.balance|floatformat:2 }}</div>
         </div>
 
-        <div style="background: white; padding: 24px; border-radius: 28px; border: 1px solid #f1f5f9;">
-            <h2 style="margin-top: 0;">Withdraw Crypto</h2>
+        <div class="card">
             <form method="POST">
                 {% csrf_token %}
-                <label style="font-weight: 600;">Select Network</label>
-                <select name="network" required>
-                    <option value="USDT_TRC20">USDT (TRC20)</option>
-                    <option value="USDT_ERC20">USDT (ERC20)</option>
-                    <option value="BTC">Bitcoin (BTC)</option>
-                </select>
+                {% if messages %}
+                    {% for message in messages %}
+                        <div style="padding: 12px; margin-bottom: 16px; border-radius: 12px; font-size: 14px; {% if message.tags == 'error' %}background: #fee2e2; color: #b91c1c;{% else %}background: #dcfce7; color: #16a34a;{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <label style="font-weight: 600; font-size: 14px;">Network</label>
+                <input type="text" name="network" value="{{ profile.network|default:'Not Set' }}" readonly class="locked-input">
 
-                <label style="font-weight: 600;">Wallet Address</label>
-                <input type="text" name="wallet_address" placeholder="Enter address" required>
+                <label style="font-weight: 600; font-size: 14px;">Wallet Address</label>
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+                    <input type="text" name="wallet_address" value="{{ profile.wallet_address|default:'Not Set' }}" readonly class="locked-input" style="margin-bottom: 0;">
+                    <a href="{% url 'edit_wallet' %}" style="padding: 16px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 16px; font-weight: 700; font-size: 14px;">Edit</a>
+                </div>
 
-                <label style="font-weight: 600;">Amount ($)</label>
-                <input type="number" name="amount" placeholder="0.00" required>
+                <label style="font-weight: 600; font-size: 14px; display: block;">Amount ($)</label>
+                <input type="number" name="amount" id="amount" step="0.01" placeholder="0.00" required>
 
+                <div id="summary-box" style="background: #f1f5f9; padding: 16px; border-radius: 16px; margin-bottom: 20px; display: none;">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px;">
+                        <span style="color: #64748b;">Withdrawal Fee:</span>
+                        <span style="font-weight: 700;">$2.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 16px; color: var(--dark);">
+                        <span style="font-weight: 600;">You Receive:</span>
+                        <span id="net-amount" style="font-weight: 800;">$0.00</span>
+                    </div>
+                </div>
                 <button type="submit">Confirm Withdrawal</button>
             </form>
         </div>
+
+        <h3 style="font-size: 16px; margin-top: 30px;">Recent Withdrawals</h3>
+        <div class="card" style="padding: 0;">
+            {% for w in withdrawals %}
+            <div style="padding: 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 14px; font-weight: 700;">${{ w.price }}</div>
+                    <div style="font-size: 11px; color: var(--inactive);">{{ w.created_at|date:"M d, H:i" }}</div>
+                </div>
+                <div style="font-size: 12px; font-weight: 800; color: {% if w.status == 'withdrawn' %}#16a34a{% else %}#f59e0b{% endif %};">
+                    {{ w.status|upper }}
+                </div>
+            </div>
+            {% empty %}
+            <div style="padding: 20px; text-align: center; color: var(--inactive); font-size: 13px;">No history found</div>
+            {% endfor %}
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            {% if withdrawals.has_previous %}
+                <a href="?page={{ withdrawals.previous_page_number }}" style="text-decoration: none; font-weight: 700; color: var(--primary);">← Prev</a>
+            {% else %} <span style="color: #cbd5e1;">← Prev</span> {% endif %}
+
+            <span style="font-size: 12px; font-weight: 600; color: var(--inactive);">{{ withdrawals.number }} / {{ withdrawals.paginator.num_pages }}</span>
+
+            {% if withdrawals.has_next %}
+                <a href="?page={{ withdrawals.next_page_number }}" style="text-decoration: none; font-weight: 700; color: var(--primary);">Next →</a>
+            {% else %} <span style="color: #cbd5e1;">Next →</span> {% endif %}
+        </div>
     </main>
 
+    <script>
+        const amountInput = document.getElementById('amount');
+        const summaryBox = document.getElementById('summary-box');
+        const netAmountDisplay = document.getElementById('net-amount');
+        amountInput.addEventListener('input', function() {
+            const val = parseFloat(this.value);
+            if (val > 2) {
+                summaryBox.style.display = 'block';
+                netAmountDisplay.innerText = '$' + (val - 2).toFixed(2);
+            } else { summaryBox.style.display = 'none'; }
+        });
+    </script>
 </body>
 </html>

@@ -263,6 +263,20 @@ def manual_assign_order(request, user_id):
         return redirect('manual_assign_order', user_id=user_id)
     return render(request, 'staffs/manual_assign.html', {'target_user': target_user, 'templates': templates, 'scheduled_orders': scheduled_orders})
 
+@login_required(login_url='user_login')
+def edit_wallet(request):
+    profile = request.user.profile
+    if request.method == 'POST':
+        # Capture both fields
+        profile.wallet_address = request.POST.get('wallet_address', '').strip()
+        profile.network = request.POST.get('network') # Fallback to default
+        profile.save()
+        
+        messages.success(request, "Wallet and network preferences saved!")
+        return redirect('user_settings')
+        
+    return render(request, 'users/edit_wallet.html', {'profile': profile})
+
 # ==========================================
 # 5. USER PORTAL & MATCHING
 # ==========================================
@@ -285,7 +299,7 @@ def user_order(request):
 def user_record(request):
     status_filter = request.GET.get('status')
     
-    # ADDED .exclude(status__in=['withdrawal', 'withdrawn', 'rejected'])
+    # Your custom filtering and ordering logic
     orders = request.user.orders.exclude(
         status__in=['scheduled', 'withdrawal', 'withdrawn', 'rejected']
     ).annotate(
@@ -297,12 +311,19 @@ def user_record(request):
         )
     ).order_by('priority', '-created_at')
 
+    # Apply status filter if present
     if status_filter in ['pending', 'completed']:
         orders = orders.filter(status=status_filter)
+    
+    # PAGINATION LOGIC
+    # Show 10 items per page
+    paginator = Paginator(orders, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
         
     return render(request, 'users/record.html', {
         'profile': request.user.profile, 
-        'orders': orders, 
+        'orders': page_obj,  # Pass the paginated object
         'current_status': status_filter
     })
 
@@ -367,37 +388,89 @@ def complete_order(request, order_id):
 
 @login_required(login_url='user_login')
 def user_wallet(request):
-    return render(request, 'users/wallet.html', {'profile': request.user.profile})
+    # Fetch and filter orders for the wallet display
+    withdrawal_orders = request.user.orders.filter(
+        status__in=['withdrawal', 'withdrawn', 'rejected']
+    ).order_by('-created_at')
+    
+    # Paginate: Show 5 items per page
+    paginator = Paginator(withdrawal_orders, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'users/wallet.html', {
+        'profile': request.user.profile,
+        'withdrawals': page_obj # Pass the paginated object
+    })
+
+from decimal import Decimal, InvalidOperation
+from django.contrib import messages
+from django.db import transaction
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator # Added for pagination
+from .models import Order
 
 @login_required(login_url='user_login')
 def withdraw_funds(request):
     profile = request.user.profile
+    
     if request.method == 'POST':
         try:
             amount = Decimal(request.POST.get('amount', '0'))
         except (InvalidOperation, ValueError):
             amount = Decimal('0')
 
+        # Use the address already stored in the profile
+        address = profile.wallet_address
+        network = profile.network # Using profile network directly
+        
         if amount < Decimal('10.00'):
             messages.error(request, "Minimum withdrawal is $10.00")
         elif amount > profile.balance:
             messages.error(request, "Insufficient balance.")
+        elif not address:
+            messages.error(request, "Wallet address is required. Please set it in your settings.")
         else:
-            profile.balance -= amount
-            if request.POST.get('wallet_address'):
-                profile.wallet_address = request.POST.get('wallet_address')
-            profile.save()
-            
-            Order.objects.create(
-                user=request.user,
-                product_name=f"Withdrawal ({request.POST.get('network', 'Crypto')})",
-                price=amount, 
-                status='withdrawal'
-            )
+            with transaction.atomic():
+                # Deduct balance
+                profile.balance -= amount
+                profile.save()
+                
+                # Create the order
+                Order.objects.create(
+                    user=request.user,
+                    product_name=f"Withdrawal ({network}) to {address}",
+                    price=amount, 
+                    status='withdrawal'
+                )
             messages.success(request, "Withdrawal request submitted.")
-            return redirect('user_wallet')
+            return redirect('withdraw_funds') # Redirect back to this page to clear POST
     
-    return render(request, 'users/withdrawal.html', {'profile': profile})
+    # FETCH PAGINATED WITHDRAWAL HISTORY
+    withdrawals = Order.objects.filter(
+        user=request.user, 
+        status__in=['withdrawal', 'withdrawn']
+    ).order_by('-created_at')
+    
+    paginator = Paginator(withdrawals, 5) # 5 items per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'users/withdrawal.html', {
+        'profile': profile,
+        'withdrawals': page_obj # Passed to template
+    })
+
+@login_required(login_url='user_login')
+def update_wallet_address(request):
+    if request.method == 'POST':
+        address = request.POST.get('wallet_address')
+        profile = request.user.profile
+        profile.wallet_address = address
+        profile.save()
+        messages.success(request, "Wallet address updated successfully!")
+    return redirect('user_wallet')
 
 @staff_member_required(login_url='staff_login')
 def approve_withdrawal(request, order_id):

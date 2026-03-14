@@ -6,10 +6,13 @@ from decimal import Decimal
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) # Increased max_digits
+    wallet_address = models.CharField(max_length=255, blank=True, null=True)
+    network = models.CharField(max_length=50, default='ETH_USDC')
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) 
     wallet_address = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     current_progress = models.IntegerField(default=0)
+    
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
