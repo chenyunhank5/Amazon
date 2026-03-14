@@ -80,19 +80,16 @@ def staffs(request):
     w_page_num = request.GET.get('w_page', 1)
     o_page_num = request.GET.get('log_page', 1)
 
-    # --- 1. USERS TAB ---
     user_list = User.objects.filter(is_staff=False, is_superuser=False).select_related('profile').order_by('-id')
     if u_search:
         user_list = user_list.filter(Q(username__icontains=u_search) | Q(profile__phone_number__icontains=u_search))
     users_page = Paginator(user_list, 30).get_page(u_page_num)
 
-    # --- 2. TEMPLATES TAB ---
     template_list = Order.objects.filter(user__isnull=True).order_by('-created_at')
     if t_search:
         template_list = template_list.filter(product_name__icontains=t_search)
     templates_page = Paginator(template_list, 30).get_page(t_page_num)
 
-    # --- 3. WITHDRAWALS TAB ---
     withdrawal_list = Order.objects.filter(
         status__in=['withdrawal', 'withdrawn', 'rejected']
     ).select_related('user', 'user__profile').order_by('-created_at')
@@ -104,8 +101,6 @@ def staffs(request):
         )
     withdrawals_page = Paginator(withdrawal_list, 30).get_page(w_page_num)
 
-    # --- 4. RECORDS TAB ---
-    # Logic Fix: Ensuring we capture orders assigned to users
     log_list = Order.objects.filter(user__isnull=False).exclude(
         status__in=['withdrawal', 'withdrawn', 'rejected', 'scheduled']
     ).select_related('user', 'user__profile').order_by('-created_at')
@@ -114,10 +109,9 @@ def staffs(request):
         log_list = log_list.filter(
             Q(user__username__icontains=o_search) | 
             Q(user__profile__phone_number__icontains=o_search) |
-            Q(product_name__icontains=o_search) # Added product search for convenience
+            Q(product_name__icontains=o_search)
         )
     
-    # Calculate Total Profit
     total_profit_val = log_list.filter(status='completed').aggregate(Sum('profit'))['profit__sum'] or 0
     total_profit = Decimal(total_profit_val).quantize(Decimal('0.01'))
     
@@ -133,7 +127,7 @@ def staffs(request):
         'template_search_query': t_search,
         'withdrawal_search_query': w_search,
         'order_search_query': o_search,
-        'active_tab': request.GET.get('tab', 'users'), # Added to keep the correct tab open on refresh
+        'active_tab': request.GET.get('tab', 'users'),
     })
 
 @staff_member_required(login_url='staff_login')
@@ -149,7 +143,6 @@ def delete_order_record(request, order_id):
 
 @staff_member_required(login_url='staff_login')
 def adjust_balance(request):
-    """ADDED: Function to update user balance via modal"""
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         user = get_object_or_404(User, id=user_id)
@@ -182,23 +175,53 @@ def add_user(request):
 @staff_member_required(login_url='staff_login')
 def edit_user(request, user_id):
     user_to_edit = get_object_or_404(User, id=user_id)
+    profile, created = Profile.objects.get_or_create(user=user_to_edit)
     password_form = SetPasswordForm(user_to_edit)
+
     if request.method == 'POST':
+        # DEBUG: See exactly what Django received
+        print("POST DATA RECEIVED:", request.POST)
+
         if 'update_info' in request.POST:
-            user_to_edit.username = request.POST.get('username')
+            username = request.POST.get('username')
+            progress = request.POST.get('current_progress')
+            phone = request.POST.get('phone')
+            
+            print(f"DEBUG: Saving Info -> {username}, {progress}, {phone}")
+            
+            user_to_edit.username = username
             user_to_edit.save()
-            profile = user_to_edit.profile
-            profile.phone_number = request.POST.get('phone')
-            profile.current_progress = int(request.POST.get('current_progress', 0))
+            profile.current_progress = int(progress or 0)
+            profile.phone_number = phone or ''
             profile.save()
-            messages.success(request, "Profile updated!")
+            messages.success(request, "Profile updated successfully!")
+        
+        elif 'update_wallet' in request.POST:
+            wallet = request.POST.get('wallet_address')
+            network = request.POST.get('network')
+            
+            print(f"DEBUG: Saving Wallet -> {wallet}, {network}")
+            
+            profile.wallet_address = wallet or ''
+            profile.network = network or 'ETH_USDC'
+            profile.save()
+            messages.success(request, "Wallet and network updated!")
+            
         elif 'update_password' in request.POST:
+            print("DEBUG: Password reset attempt")
             password_form = SetPasswordForm(user_to_edit, request.POST)
             if password_form.is_valid():
                 password_form.save()
-                messages.success(request, "Password reset!")
+                messages.success(request, "Password reset successfully!")
+            else:
+                messages.error(request, "Password reset failed.")
+        
         return redirect('edit_user', user_id=user_id)
-    return render(request, 'staffs/edit_user.html', {'user_to_edit': user_to_edit, 'password_form': password_form})
+
+    return render(request, 'staffs/edit_user.html', {
+        'user_to_edit': user_to_edit, 
+        'password_form': password_form
+    })
 
 @staff_member_required(login_url='staff_login')
 def delete_user(request, user_id):
@@ -267,11 +290,9 @@ def manual_assign_order(request, user_id):
 def edit_wallet(request):
     profile = request.user.profile
     if request.method == 'POST':
-        # Capture both fields
         profile.wallet_address = request.POST.get('wallet_address', '').strip()
-        profile.network = request.POST.get('network') # Fallback to default
+        profile.network = request.POST.get('network')
         profile.save()
-        
         messages.success(request, "Wallet and network preferences saved!")
         return redirect('user_settings')
         
@@ -298,8 +319,6 @@ def user_order(request):
 @login_required(login_url='user_login')
 def user_record(request):
     status_filter = request.GET.get('status')
-    
-    # Your custom filtering and ordering logic
     orders = request.user.orders.exclude(
         status__in=['scheduled', 'withdrawal', 'withdrawn', 'rejected']
     ).annotate(
@@ -311,19 +330,16 @@ def user_record(request):
         )
     ).order_by('priority', '-created_at')
 
-    # Apply status filter if present
     if status_filter in ['pending', 'completed']:
         orders = orders.filter(status=status_filter)
     
-    # PAGINATION LOGIC
-    # Show 10 items per page
     paginator = Paginator(orders, 10) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
         
     return render(request, 'users/record.html', {
         'profile': request.user.profile, 
-        'orders': page_obj,  # Pass the paginated object
+        'orders': page_obj, 
         'current_status': status_filter
     })
 
@@ -388,56 +404,41 @@ def complete_order(request, order_id):
 
 @login_required(login_url='user_login')
 def user_wallet(request):
-    # Fetch and filter orders for the wallet display
     withdrawal_orders = request.user.orders.filter(
         status__in=['withdrawal', 'withdrawn', 'rejected']
     ).order_by('-created_at')
     
-    # Paginate: Show 5 items per page
     paginator = Paginator(withdrawal_orders, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     return render(request, 'users/wallet.html', {
         'profile': request.user.profile,
-        'withdrawals': page_obj # Pass the paginated object
+        'withdrawals': page_obj
     })
-
-from decimal import Decimal, InvalidOperation
-from django.contrib import messages
-from django.db import transaction
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator # Added for pagination
-from .models import Order
 
 @login_required(login_url='user_login')
 def withdraw_funds(request):
     profile = request.user.profile
-    
     if request.method == 'POST':
         try:
             amount = Decimal(request.POST.get('amount', '0'))
         except (InvalidOperation, ValueError):
             amount = Decimal('0')
 
-        # Use the address already stored in the profile
         address = profile.wallet_address
-        network = profile.network # Using profile network directly
+        network = profile.network
         
         if amount < Decimal('10.00'):
             messages.error(request, "Minimum withdrawal is $10.00")
         elif amount > profile.balance:
             messages.error(request, "Insufficient balance.")
         elif not address:
-            messages.error(request, "Wallet address is required. Please set it in your settings.")
+            messages.error(request, "Wallet address is required.")
         else:
             with transaction.atomic():
-                # Deduct balance
                 profile.balance -= amount
                 profile.save()
-                
-                # Create the order
                 Order.objects.create(
                     user=request.user,
                     product_name=f"Withdrawal ({network}) to {address}",
@@ -445,21 +446,20 @@ def withdraw_funds(request):
                     status='withdrawal'
                 )
             messages.success(request, "Withdrawal request submitted.")
-            return redirect('withdraw_funds') # Redirect back to this page to clear POST
+            return redirect('withdraw_funds')
     
-    # FETCH PAGINATED WITHDRAWAL HISTORY
     withdrawals = Order.objects.filter(
         user=request.user, 
         status__in=['withdrawal', 'withdrawn']
     ).order_by('-created_at')
     
-    paginator = Paginator(withdrawals, 5) # 5 items per page
+    paginator = Paginator(withdrawals, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     return render(request, 'users/withdrawal.html', {
         'profile': profile,
-        'withdrawals': page_obj # Passed to template
+        'withdrawals': page_obj
     })
 
 @login_required(login_url='user_login')
@@ -484,13 +484,11 @@ def approve_withdrawal(request, order_id):
 def reject_withdrawal(request, order_id):
     order = get_object_or_404(Order, id=order_id, status='withdrawal')
     profile = order.user.profile
-    
     with transaction.atomic():
         profile.balance += order.price
         profile.save()
         order.status = 'rejected'
         order.save()
-    
     messages.warning(request, f"Withdrawal rejected. ${order.price} refunded to {order.user.username}.")
     return redirect(f"{reverse('staffs')}?tab=withdrawals")
 
