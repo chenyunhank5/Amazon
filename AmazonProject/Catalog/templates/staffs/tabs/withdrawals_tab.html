@@ -1,12 +1,24 @@
-<div id="withdrawals-tab" class="tab-content">
-    <h3>Withdrawal Requests</h3>
-    
-    <form method="get" style="display: flex; gap: 5px; margin-bottom: 15px;">
-        <input type="hidden" name="tab" value="withdrawals">
-        <input type="text" name="withdrawal_search" placeholder="Search name or phone..." value="{{ withdrawal_search_query }}" style="padding:8px; border:1px solid #ddd; border-radius:4px; flex: 1;">
-        <button type="submit" class="btn-sm btn-blue">Search</button>
-    </form>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+    <div>
+        <h3 style="margin:0;">Withdrawal Requests</h3>
+        <p style="font-size: 12px; color: #64748b; margin: 0;">Review and process user cash-out requests.</p>
+    </div>
+</div>
 
+<div style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+    <form method="get" style="display: flex; gap: 10px;">
+        <input type="hidden" name="tab" value="withdrawals">
+        <input type="text" name="withdrawal_search" placeholder="Search name or phone..." 
+               value="{{ withdrawal_search_query }}" 
+               style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none;">
+        <button type="submit" class="btn-sm btn-blue" style="padding: 0 20px; height: 40px;">Search</button>
+        {% if withdrawal_search_query %}
+            <a href="?tab=withdrawals" class="btn-sm" style="background:#64748b; color:white; text-decoration:none; display:flex; align-items:center; padding: 0 15px; height: 40px; border-radius: 6px;">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<div style="overflow-x: auto;">
     <table>
         <thead>
             <tr>
@@ -55,25 +67,44 @@
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
                     {% if w.status == 'withdrawal' %}
-                        <a href="{% url 'approve_withdrawal' w.id %}" class="btn-sm" style="background:#27ae60; color:white; text-decoration:none; display:inline-block; padding: 5px 8px; border-radius: 4px;">Approve</a>
-                        <a href="{% url 'reject_withdrawal' w.id %}" class="btn-sm btn-red" style="text-decoration:none; display:inline-block; margin-left:3px; padding: 5px 8px; border-radius: 4px;" onclick="return confirm('Refund funds and reject this request?')">Reject</a>
+                        <a href="{% url 'approve_withdrawal' w.id %}" class="btn-sm" style="background:#27ae60; color:white; text-decoration:none; display:inline-block; padding: 6px 12px; border-radius: 4px; font-size: 11px;">Approve</a>
+                        <a href="{% url 'reject_withdrawal' w.id %}" class="btn-sm btn-red" style="text-decoration:none; display:inline-block; margin-left:3px; padding: 6px 12px; border-radius: 4px; font-size: 11px;" onclick="return confirm('Refund funds and reject this request?')">Reject</a>
                     {% elif w.status == 'withdrawn' %}
-                        <span style="color:#27ae60; font-size:12px; font-weight:bold;">✅ Success</span>
+                        <span style="color:#27ae60; font-size:12px; font-weight:bold;">✅ Completed</span>
                     {% elif w.status == 'rejected' %}
                         <span style="color:#e74c3c; font-size:12px; font-weight:bold;">❌ Refunded</span>
                     {% endif %}
                 </td>
             </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">
+                    No withdrawal requests found.
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
-    
-    </div>
+</div>
 
 <script>
+/**
+ * Simple copy-to-clipboard function
+ */
 function copyToClipboard(text, btn) {
+    if (!navigator.clipboard) {
+        // Fallback for older browsers
+        const el = document.createElement('textarea');
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        btn.innerText = "✅";
+        setTimeout(() => { btn.innerText = "📋"; }, 2000);
+        return;
+    }
     navigator.clipboard.writeText(text).then(() => {
-        const originalText = btn.innerText;
         btn.innerText = "✅";
         setTimeout(() => { btn.innerText = "📋"; }, 2000);
     });

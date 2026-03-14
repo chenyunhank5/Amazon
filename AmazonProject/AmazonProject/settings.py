@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-m8#10x2ns71qgeru31p7mev-qyl!!rliu(o7p3x*o$83dn2(eb")
 
 # Set DEBUG to False in Railway, True locally
-DEBUG = False #os.environ.get("DEBUG", "True") == "True"
+DEBUG = os.environ.get("DEBUG", "True") == "True"
 
 # Allow all hosts for initial setup; you can restrict this to your Wix domain later.
 ALLOWED_HOSTS = ['*']

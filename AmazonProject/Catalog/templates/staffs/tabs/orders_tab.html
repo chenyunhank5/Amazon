@@ -1,41 +1,55 @@
-<div id="orders-tab" class="tab-content">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h3>Task Templates</h3>
-        <a href="{% url 'add_order_staff' %}" class="btn-sm btn-blue" style="text-decoration:none;">+ Add Template</a>
-    </div>
-
-    <form method="get" style="display: flex; gap: 5px; margin-bottom: 15px;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+    <form method="get" style="display: flex; gap: 5px;">
         <input type="hidden" name="tab" value="orders">
-        <input type="text" name="template_search" placeholder="Search product..." value="{{ template_search_query }}" style="padding:8px; border:1px solid #ddd; border-radius:4px; flex: 1;">
+        <input type="text" name="template_search" placeholder="Search product..." value="{{ template_search_query }}" 
+               style="padding:8px; border:1px solid #eee; border-radius:6px; width: 250px;">
         <button type="submit" class="btn-sm btn-blue">Search</button>
+        {% if template_search_query %}
+            <a href="?tab=orders" class="btn-sm" style="background:#94a3b8; color:white; text-decoration:none; display:flex; align-items:center;">Clear</a>
+        {% endif %}
     </form>
+    <a href="{% url 'add_order_staff' %}" class="btn-sm btn-blue" style="text-decoration:none;">+ New Template</a>
+</div>
 
-    <table>
-        <thead><tr><th>Product</th><th>Price</th><th>Comm.</th><th style="text-align:right;">Actions</th></tr></thead>
-        <tbody>
-            {% for t in task_templates %}
-            <tr>
-                <td><b>{{ t.product_name }}</b></td>
-                <td>${{ t.price }}</td>
-                <td>{{ t.commission_rate }}%</td>
-                <td style="text-align: right; white-space: nowrap;">
-                    <a href="{% url 'edit_order_staff' t.id %}" class="btn-sm btn-blue" style="display:inline-block; margin-left:3px; text-decoration:none;">Edit</a>
-                    <a href="{% url 'delete_order_staff' t.id %}" class="btn-sm btn-red" style="display:inline-block; margin-left:3px; text-decoration:none;" onclick="return confirm('Delete?')">Delete</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<table>
+    <thead>
+        <tr>
+            <th>PRODUCT NAME</th>
+            <th>PRICE</th>
+            <th>COMMISSION</th>
+            <th style="text-align: right;">ACTIONS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in task_templates %}
+        <tr>
+            <td><strong>{{ t.product_name }}</strong></td>
+            <td>${{ t.price }}</td>
+            <td>{{ t.commission_rate }}%</td>
+            <td style="text-align: right; white-space: nowrap;">
+                <a href="{% url 'edit_order_staff' t.id %}" class="btn-sm btn-blue">Edit</a>
+                <a href="{% url 'delete_order_staff' t.id %}" class="btn-sm btn-red" 
+                   onclick="return confirm('Delete this template?')">Delete</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No task templates found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-    {% if task_templates.has_other_pages %}
-    <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
-        {% if task_templates.has_previous %}
-            <a href="?t_page={{ task_templates.previous_page_number }}&template_search={{ template_search_query }}&tab=orders" class="btn-sm" style="background: #3498db; color:white; text-decoration:none;">&laquo; Prev</a>
-        {% endif %}
-        <span style="font-weight:bold;">Page {{ task_templates.number }} of {{ task_templates.paginator.num_pages }}</span>
-        {% if task_templates.has_next %}
-            <a href="?t_page={{ task_templates.next_page_number }}&template_search={{ template_search_query }}&tab=orders" class="btn-sm" style="background: #3498db; color:white; text-decoration:none;">Next &raquo;</a>
-        {% endif %}
-    </div>
+{% if task_templates.has_other_pages %}
+<div class="pagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
+    {% if task_templates.has_previous %}
+        <a href="?t_page={{ task_templates.previous_page_number }}&tab=orders{% if template_search_query %}&template_search={{ template_search_query }}{% endif %}" 
+           class="btn-sm" style="background:#eee; color:#666; text-decoration:none;">&laquo; Prev</a>
+    {% endif %}
+    
+    <span style="font-size:12px; color:#94a3b8;">Page {{ task_templates.number }} of {{ task_templates.paginator.num_pages }}</span>
+    
+    {% if task_templates.has_next %}
+        <a href="?t_page={{ task_templates.next_page_number }}&tab=orders{% if template_search_query %}&template_search={{ template_search_query }}{% endif %}" 
+           class="btn-sm" style="background:#eee; color:#666; text-decoration:none;">Next &raquo;</a>
     {% endif %}
 </div>
+{% endif %}

@@ -21,7 +21,10 @@ urlpatterns = [
     path('staff/users/add/', views.add_user, name='add_user'),
     path('staff/users/edit/<int:user_id>/', views.edit_user, name='edit_user'),
     path('staff/users/delete/<int:user_id>/', views.delete_user, name='delete_user'),
-    path('staff/users/adjust-balance/<int:user_id>/', views.adjust_balance, name='adjust_balance'),
+    
+    # FIXED: Removed <int:user_id> because the Modal sends user_id via POST data
+    path('staff/users/adjust-balance/', views.adjust_balance, name='adjust_balance'),
+    
     path('staff/users/reset-progress/<int:user_id>/', views.reset_user_orders, name='reset_user_orders'),
     path('staff/users/assign-task/<int:user_id>/', views.manual_assign_order, name='manual_assign_order'),
     
@@ -53,7 +56,7 @@ urlpatterns = [
     path('order/submit/<int:order_id>/', views.complete_order, name='complete_order'),
     
     # Finance & Records
-    path('wallet/', views.user_wallet, name='user_wallet'), # Formerly 'history'
+    path('wallet/', views.user_wallet, name='user_wallet'),
     path('withdraw/', views.withdraw_funds, name='withdraw_funds'),
     path('records/', views.user_record, name='user_record'),
 ]

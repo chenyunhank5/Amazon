@@ -93,7 +93,6 @@ def staffs(request):
     templates_page = Paginator(template_list, 30).get_page(t_page_num)
 
     # --- 3. WITHDRAWALS TAB ---
-    # Shows strictly financial records: Pending, Success, and Rejected
     withdrawal_list = Order.objects.filter(
         status__in=['withdrawal', 'withdrawn', 'rejected']
     ).select_related('user', 'user__profile').order_by('-created_at')
@@ -105,9 +104,8 @@ def staffs(request):
         )
     withdrawals_page = Paginator(withdrawal_list, 30).get_page(w_page_num)
 
-    # --- 4. RECORDS TAB (Order Logs) ---
-    # We EXCLUDE all withdrawal-related statuses and 'scheduled' templates
-    # This leaves only: 'pending', 'completed', and 'frozen' tasks
+    # --- 4. RECORDS TAB ---
+    # Logic Fix: Ensuring we capture orders assigned to users
     log_list = Order.objects.filter(user__isnull=False).exclude(
         status__in=['withdrawal', 'withdrawn', 'rejected', 'scheduled']
     ).select_related('user', 'user__profile').order_by('-created_at')
@@ -115,10 +113,11 @@ def staffs(request):
     if o_search:
         log_list = log_list.filter(
             Q(user__username__icontains=o_search) | 
-            Q(user__profile__phone_number__icontains=o_search)
+            Q(user__profile__phone_number__icontains=o_search) |
+            Q(product_name__icontains=o_search) # Added product search for convenience
         )
     
-    # Calculate profit only from completed task orders
+    # Calculate Total Profit
     total_profit_val = log_list.filter(status='completed').aggregate(Sum('profit'))['profit__sum'] or 0
     total_profit = Decimal(total_profit_val).quantize(Decimal('0.01'))
     
@@ -134,6 +133,7 @@ def staffs(request):
         'template_search_query': t_search,
         'withdrawal_search_query': w_search,
         'order_search_query': o_search,
+        'active_tab': request.GET.get('tab', 'users'), # Added to keep the correct tab open on refresh
     })
 
 @staff_member_required(login_url='staff_login')
@@ -146,6 +146,23 @@ def delete_order_record(request, order_id):
 # ==========================================
 # 3. STAFF: USER MANAGEMENT
 # ==========================================
+
+@staff_member_required(login_url='staff_login')
+def adjust_balance(request):
+    """ADDED: Function to update user balance via modal"""
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        user = get_object_or_404(User, id=user_id)
+        profile = user.profile
+        try:
+            amount = Decimal(request.POST.get('amount', '0'))
+            with transaction.atomic():
+                profile.balance += amount
+                profile.save()
+            messages.success(request, f"Updated balance for {user.username} by ${amount}")
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Invalid amount entered.")
+    return redirect(f"{reverse('staffs')}?tab=users")
 
 @staff_member_required(login_url='staff_login')
 def add_user(request):
@@ -186,24 +203,6 @@ def edit_user(request, user_id):
 @staff_member_required(login_url='staff_login')
 def delete_user(request, user_id):
     get_object_or_404(User, id=user_id).delete()
-    return redirect('staffs')
-
-@staff_member_required(login_url='staff_login')
-def adjust_balance(request, user_id):
-    if request.method == 'POST':
-        user = get_object_or_404(User, id=user_id)
-        profile = user.profile
-        try:
-            amount = Decimal(request.POST.get('amount', '0'))
-        except InvalidOperation:
-            amount = Decimal('0')
-            
-        if request.POST.get('action') == 'add': 
-            profile.balance += amount
-        else: 
-            profile.balance -= amount
-        profile.save()
-        messages.success(request, f"Balance adjusted for {user.username}")
     return redirect('staffs')
 
 @staff_member_required(login_url='staff_login')
@@ -367,7 +366,6 @@ def withdraw_funds(request):
     profile = request.user.profile
     if request.method == 'POST':
         try:
-            # Always wrap calculations and inputs in Decimal to prevent float errors
             amount = Decimal(request.POST.get('amount', '0'))
         except (InvalidOperation, ValueError):
             amount = Decimal('0')
@@ -378,7 +376,6 @@ def withdraw_funds(request):
             messages.error(request, "Insufficient balance.")
         else:
             profile.balance -= amount
-            # Save crypto wallet from post if needed
             if request.POST.get('wallet_address'):
                 profile.wallet_address = request.POST.get('wallet_address')
             profile.save()
@@ -408,11 +405,8 @@ def reject_withdrawal(request, order_id):
     profile = order.user.profile
     
     with transaction.atomic():
-        # 1. Refund the money to user balance
         profile.balance += order.price
         profile.save()
-        
-        # 2. Update the record status instead of deleting
         order.status = 'rejected'
         order.save()
     
