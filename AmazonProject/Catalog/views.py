@@ -125,7 +125,7 @@ def staffs(request):
     template_list = Order.objects.filter(user__isnull=True).order_by('-created_at')
     if t_search:
         template_list = template_list.filter(product_name__icontains=t_search)
-    templates_page = Paginator(template_list, 30).get_page(t_page_num)
+    templates_page = Paginator(template_list, 10).get_page(t_page_num)
 
     withdrawal_list = Order.objects.filter(
         status__in=['withdrawal', 'withdrawn', 'rejected']
@@ -152,7 +152,7 @@ def staffs(request):
     total_profit_val = log_list.filter(status='completed').aggregate(Sum('profit'))['profit__sum'] or 0
     total_profit = Decimal(str(total_profit_val)).quantize(Decimal('0.01'))
     
-    logs_page = Paginator(log_list, 10).get_page(o_page_num)
+    logs_page = Paginator(log_list, 30).get_page(o_page_num)
 
     return render(request, 'staffs/staffs_main.html', {
         'users': users_page,
