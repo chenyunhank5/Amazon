@@ -4,56 +4,97 @@
 
 {% block content %}
 <div style="width: 100%; max-width: 400px; margin: 0 auto;">
-    
-    <div class="dashboard-card" style="padding: 30px 20px; text-align: center;">
-        <div style="color: #3b82f6; font-size: 11px; font-weight: 800; letter-spacing: 2px; margin-bottom: 20px;">TASK ASSIGNED</div>
-        
-        <div style="width: 120px; height: 120px; background: #f8fafc; border-radius: 25px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9;">
-            <span style="font-size: 50px;">📦</span>
+
+    <div class="dashboard-card" style="padding: 10px 10px; text-align: center;">
+
+        <!-- PRODUCT IMAGE -->
+        <div style="width:100%;height:250px;background:#f8fafc;border-radius:0px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;border:1px solid #f1f5f9;overflow:hidden;">
+
+            {% if order.image_url and order.image_url != "None" %}
+                <img src="{{ order.image_url }}" 
+                     style="width:100%;height:100%;object-fit:cover;">
+            {% else %}
+                <span style="font-size:50px;">📦</span>
+            {% endif %}
+
         </div>
 
-        <h2 style="margin: 0; color: var(--dark); font-size: 20px; font-weight: 800;">{{ order.product_name }}</h2>
-        <p style="color: #94a3b8; font-size: 12px; margin-top: 5px;">Order ID: #MS-{{ order.id }}99</p>
+        <!-- PRODUCT NAME -->
+        <h2 style="margin:0;color:var(--dark);font-size:15px;font-weight:800;">
+            {{ order.product_name }}
+        </h2>
 
-        <div style="background: #f1f5f9; border-radius: 20px; padding: 20px; margin: 25px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div style="text-align: left;">
-                <div style="font-size: 11px; color: #64748b; font-weight: 600;">Product Price</div>
-                <div style="font-size: 20px; font-weight: 800; color: var(--dark);">${{ order.price }}</div>
+        <p style="color:#94a3b8;font-size:12px;margin-top:5px;">
+            Order ID: #MS-{{ order.id }}99
+        </p>
+
+        <!-- PRICE + PROFIT -->
+        <div style="background:#f1f5f9;border-radius:20px;padding:20px;margin:25px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+            <div style="text-align:left;">
+                <div style="font-size:11px;color:#64748b;font-weight:600;">
+                    Product Price
+                </div>
+                <div style="font-size:20px;font-weight:800;color:var(--dark);">
+                    ${{ order.price }}
+                </div>
             </div>
-            <div style="text-align: right;">
-                <div style="font-size: 11px; color: #64748b; font-weight: 600;">Expected Profit</div>
-                <div style="font-size: 20px; font-weight: 800; color: #10b981;">+${{ order.profit }}</div>
+
+            <div style="text-align:right;">
+                <div style="font-size:11px;color:#64748b;font-weight:600;">
+                    Expected Profit
+                </div>
+                <div style="font-size:20px;font-weight:800;color:#10b981;">
+                    +${{ order.profit }}
+                </div>
             </div>
+
         </div>
 
+        <!-- BALANCE CHECK -->
         {% if profile.balance < order.price %}
-            <div style="background: #fff1f2; color: #e11d48; padding: 12px; border-radius: 15px; font-size: 12px; font-weight: 700; margin-bottom: 20px; border: 1px solid #ffe4e6;">
-                ⚠️ Insufficient Balance: ${{ profile.balance }}
-            </div>
 
-            <a href="{% url 'user_record' %}" style="display: block; text-decoration: none; width: 100%; padding: 20px; border-radius: 20px; background: #ef4444; color: white; font-weight: 800; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);">
-                SUBMIT ORDER
-            </a>
+        <div style="background:#fff1f2;color:#e11d48;padding:12px;border-radius:15px;font-size:12px;font-weight:700;margin-bottom:20px;border:1px solid #ffe4e6;">
+            ⚠️ Insufficient Balance: ${{ profile.balance }}
+        </div>
+
+        <a href="{% url 'user_record' %}" 
+           style="display:block;text-decoration:none;width:100%;padding:20px;border-radius:20px;background:#ef4444;color:white;font-weight:800;font-size:16px;box-shadow:0 10px 15px -3px rgba(239,68,68,0.3);">
+            SUBMIT ORDER
+        </a>
+
         {% else %}
-            <form action="{% url 'complete_order' order.id %}" method="POST" id="completeForm">
-                {% csrf_token %}
-                <button type="submit" id="submitBtn" 
-                    onclick="this.innerHTML='Processing...'; this.style.opacity='0.7'; this.style.pointerEvents='none';" 
-                    style="width: 100%; padding: 20px; border-radius: 20px; border: none; background: #0f172a; color: white; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.3);">
-                    SUBMIT ORDER
-                </button>
-            </form>
+
+        <!-- SUBMIT FORM -->
+        <form action="{% url 'complete_order' order.id %}" method="POST">
+            {% csrf_token %}
+
+            <button type="submit"
+                onclick="this.innerHTML='Processing...';this.style.opacity='0.7';this.style.pointerEvents='none';"
+                style="width:100%;padding:20px;border-radius:20px;border:none;background:#0f172a;color:white;font-weight:800;font-size:16px;cursor:pointer;transition:0.3s;box-shadow:0 10px 15px -3px rgba(15,23,42,0.3);">
+
+                SUBMIT ORDER
+
+            </button>
+        </form>
+
         {% endif %}
 
-        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-            <p style="color: #94a3b8; font-size: 12px; line-height: 1.4; margin: 0;">
-                <i class="fas fa-lock"></i> 
+        <!-- FOOTER -->
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">
+
+            <p style="color:#94a3b8;font-size:12px;line-height:1.4;margin:0;">
+                <i class="fas fa-lock"></i>
                 Task is locked. Complete it to continue.
             </p>
-            <a href="{% url 'user_order' %}" style="text-decoration: none; color: #64748b; font-size: 13px; font-weight: 600;">
+
+            <a href="{% url 'user_order' %}"
+               style="text-decoration:none;color:#64748b;font-size:13px;font-weight:600;">
                 Cancel and go back
             </a>
+
         </div>
+
     </div>
 </div>
 {% endblock %}

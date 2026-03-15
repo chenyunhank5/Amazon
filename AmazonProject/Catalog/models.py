@@ -33,6 +33,7 @@ class Order(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True, blank=True)
     product_name = models.CharField(max_length=255)
+    image_url = models.URLField(max_length=500, blank=True, null=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     profit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) 
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=1.00)

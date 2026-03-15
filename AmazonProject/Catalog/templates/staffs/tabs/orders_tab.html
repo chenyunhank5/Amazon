@@ -1,56 +1,54 @@
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-    <form method="get" style="display: flex; gap: 5px;">
-        <input type="hidden" name="tab" value="templates">
-        
-        <input type="text" name="template_search" placeholder="Search product..." value="{{ template_search_query }}" 
-               style="padding:8px; border:1px solid #eee; border-radius:6px; width: 250px;">
+<form method="GET" action="{% url 'staffs' %}" style="margin-bottom: 20px;">
+    <input type="hidden" name="tab" value="templates">
+    
+    <div style="display: flex; gap: 8px;">
+        <input type="text" name="template_search" placeholder="Search templates..." 
+               value="{{ template_search_query }}" 
+               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
         <button type="submit" class="btn-sm btn-blue">Search</button>
-        {% if template_search_query %}
-            <a href="?tab=templates" class="btn-sm" style="background:#94a3b8; color:white; text-decoration:none; display:flex; align-items:center;">Clear</a>
-        {% endif %}
-    </form>
-    <a href="{% url 'add_order_staff' %}" class="btn-sm btn-blue" style="text-decoration:none;">+ New Template</a>
+    </div>
+</form>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <h3 style="margin:0;">Task Templates</h3>
+    <a href="{% url 'add_order_staff' %}" class="btn-sm btn-balance">+ Create New Template</a>
 </div>
 
-<table>
+<table style="width: 100%; border-collapse: collapse;">
     <thead>
         <tr>
-            <th>PRODUCT NAME</th>
-            <th>PRICE</th>
-            <th>COMMISSION</th>
-            <th style="text-align: right;">ACTIONS</th>
+            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left;">Image</th>
+            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left;">Product Name</th>
+            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left;">Price</th>
+            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left;">Commission %</th>
+            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: right;">Actions</th>
         </tr>
     </thead>
     <tbody>
-        {% for t in task_templates %}
+        {% for o in task_templates %}
         <tr>
-            <td><strong>{{ t.product_name }}</strong></td>
-            <td>${{ t.price }}</td>
-            <td>{{ t.commission_rate }}%</td>
-            <td style="text-align: right; white-space: nowrap;">
-                <a href="{% url 'edit_order_staff' t.id %}" class="btn-sm btn-blue">Edit</a>
-                <a href="{% url 'delete_order_staff' t.id %}" class="btn-sm btn-red" 
-                   onclick="return confirm('Delete this template?')">Delete</a>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">
+                {% if o.image_url %}
+                    <a href="{{ o.image_url }}" target="_blank">
+                        <img src="{{ o.image_url }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;">
+                    </a>
+                {% else %}
+                    <div style="width: 40px; height: 40px; background: #f8fafc; border-radius: 6px; border: 1px dashed #ddd; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #94a3b8;">N/A</div>
+                {% endif %}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">{{ o.product_name }}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">${{ o.price }}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; color:#3498db; font-weight:bold;">{{ o.commission_rate }}%</td>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: right;">
+                <a href="{% url 'edit_order_staff' o.id %}" class="btn-sm btn-blue">Edit</a>
+                <form action="{% url 'delete_order_staff' o.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-sm btn-red" onclick="return confirm('Delete template?')">Delete</button>
+                </form>
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No task templates found.</td></tr>
+        <tr><td colspan="5" style="text-align:center; padding: 20px; color:#94a3b8;">No templates found.</td></tr>
         {% endfor %}
     </tbody>
 </table>
-
-{% if task_templates.has_other_pages %}
-<div class="pagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
-    {% if task_templates.has_previous %}
-        <a href="?t_page={{ task_templates.previous_page_number }}&tab=templates{% if template_search_query %}&template_search={{ template_search_query }}{% endif %}" 
-           class="btn-sm" style="background:#eee; color:#666; text-decoration:none;">&laquo; Prev</a>
-    {% endif %}
-    
-    <span style="font-size:12px; color:#94a3b8;">Page {{ task_templates.number }} of {{ task_templates.paginator.num_pages }}</span>
-    
-    {% if task_templates.has_next %}
-        <a href="?t_page={{ task_templates.next_page_number }}&tab=templates{% if template_search_query %}&template_search={{ template_search_query }}{% endif %}" 
-           class="btn-sm" style="background:#eee; color:#666; text-decoration:none;">Next &raquo;</a>
-    {% endif %}
-</div>
-{% endif %}

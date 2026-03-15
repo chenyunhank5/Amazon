@@ -36,11 +36,17 @@
                     {% if order.status == 'pending' %} border-left: 4px solid #f59e0b; background: #fffdfa; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); {% endif %}">
                     
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 45px; height: 45px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 18px;
-                            {% if order.status == 'completed' %} background: #f0fdf4; color: #16a34a;
-                            {% elif order.status == 'pending' %} background: #fffbeb; color: #d97706;
-                            {% else %} background: #f1f5f9; color: #64748b; {% endif %}">
-                            {% if order.status == 'completed' %}✅{% elif order.status == 'pending' %}⏳{% else %}📦{% endif %}
+                        <div style="width: 45px; height: 45px; border-radius: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+                            {% if order.status == 'completed' %} background: #f0fdf4; {% elif order.status == 'pending' %} background: #fffbeb; {% else %} background: #f1f5f9; {% endif %}">
+                            
+                            {% if order.image_url %}
+                                <img src="{{ order.image_url }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span style="display: none; font-size: 18px;">{% if order.status == 'completed' %}✅{% elif order.status == 'pending' %}⏳{% else %}📦{% endif %}</span>
+                            {% else %}
+                                <span style="{% if order.status == 'completed' %} color: #16a34a; {% elif order.status == 'pending' %} color: #d97706; {% else %} color: #64748b; {% endif %}">
+                                    {% if order.status == 'completed' %}✅{% elif order.status == 'pending' %}⏳{% else %}📦{% endif %}
+                                </span>
+                            {% endif %}
                         </div>
 
                         <div>
@@ -90,7 +96,7 @@
         {% if orders.has_previous %}
             <a href="?page={{ orders.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}" 
                style="padding: 10px 20px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; text-decoration: none; font-size: 12px; font-weight: 700; color: #0f172a;">
-               ← Previous
+                ← Previous
             </a>
         {% else %}
             <span style="padding: 10px 20px; color: #cbd5e1; font-size: 12px;">← Previous</span>
@@ -103,7 +109,7 @@
         {% if orders.has_next %}
             <a href="?page={{ orders.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}" 
                style="padding: 10px 20px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; text-decoration: none; font-size: 12px; font-weight: 700; color: #0f172a;">
-               Next →
+                Next →
             </a>
         {% else %}
             <span style="padding: 10px 20px; color: #cbd5e1; font-size: 12px;">Next →</span>

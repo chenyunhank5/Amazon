@@ -32,7 +32,8 @@
                 <a href="{% url 'manual_assign_order' u.id %}" class="btn-sm" style="background:#8e44ad; color:white;">Assign</a>
                 
                 <button onclick="openModal('{{u.id}}', '{{u.username}}')" class="btn-sm btn-balance" style="border:none;">Adjust</button>
-                
+                <a href="{% url 'reset_user_orders' u.id %}" class="btn-sm" style="background:#f39c12; color:white; text-decoration:none;" 
+       onclick="return confirm('Reset progress to 0 for {{u.username}}?')">Reset</a>
                 <a href="{% url 'edit_user' u.id %}" class="btn-sm btn-blue">Edit</a>
                 <a href="{% url 'delete_user' u.id %}" class="btn-sm btn-red" onclick="return confirm('Delete user?')">Delete</a>
             </td>

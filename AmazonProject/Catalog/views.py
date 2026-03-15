@@ -28,14 +28,7 @@ def home(request):
     today = now.date()
     yesterday = today - timedelta(days=1)
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-    # Use this to see exactly what is being grabbed
     all_completed = Order.objects.filter(user=request.user, status='completed')
-    
-    # Debug: Check if orders even have dates
-    # You can print this in your terminal to see if dates are None
-    # print(all_completed.values_list('created_at', flat=True))
-
     earned_today = all_completed.filter(created_at__date=today).aggregate(Sum('profit'))['profit__sum'] or 0
     earned_yesterday = all_completed.filter(created_at__date=yesterday).aggregate(Sum('profit'))['profit__sum'] or 0
     earned_this_month = all_completed.filter(created_at__gte=start_of_month).aggregate(Sum('profit'))['profit__sum'] or 0
@@ -46,7 +39,7 @@ def home(request):
         'earned_yesterday': earned_yesterday,
         'earned_this_month': earned_this_month
     })
-    
+
 def staff_login(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -138,7 +131,7 @@ def staffs(request):
         )
     
     total_profit_val = log_list.filter(status='completed').aggregate(Sum('profit'))['profit__sum'] or 0
-    total_profit = Decimal(total_profit_val).quantize(Decimal('0.01'))
+    total_profit = Decimal(str(total_profit_val)).quantize(Decimal('0.01'))
     
     logs_page = Paginator(log_list, 30).get_page(o_page_num)
 
@@ -204,42 +197,25 @@ def edit_user(request, user_id):
     password_form = SetPasswordForm(user_to_edit)
 
     if request.method == 'POST':
-        # DEBUG: See exactly what Django received
-        print("POST DATA RECEIVED:", request.POST)
-
         if 'update_info' in request.POST:
-            username = request.POST.get('username')
-            progress = request.POST.get('current_progress')
-            phone = request.POST.get('phone')
-            
-            print(f"DEBUG: Saving Info -> {username}, {progress}, {phone}")
-            
-            user_to_edit.username = username
+            user_to_edit.username = request.POST.get('username')
             user_to_edit.save()
-            profile.current_progress = int(progress or 0)
-            profile.phone_number = phone or ''
+            profile.current_progress = int(request.POST.get('current_progress', 0))
+            profile.phone_number = request.POST.get('phone', '')
             profile.save()
             messages.success(request, "Profile updated successfully!")
         
         elif 'update_wallet' in request.POST:
-            wallet = request.POST.get('wallet_address')
-            network = request.POST.get('network')
-            
-            print(f"DEBUG: Saving Wallet -> {wallet}, {network}")
-            
-            profile.wallet_address = wallet or ''
-            profile.network = network or 'ETH_USDC'
+            profile.wallet_address = request.POST.get('wallet_address', '')
+            profile.network = request.POST.get('network', 'ETH_USDC')
             profile.save()
             messages.success(request, "Wallet and network updated!")
             
         elif 'update_password' in request.POST:
-            print("DEBUG: Password reset attempt")
             password_form = SetPasswordForm(user_to_edit, request.POST)
             if password_form.is_valid():
                 password_form.save()
                 messages.success(request, "Password reset successfully!")
-            else:
-                messages.error(request, "Password reset failed.")
         
         return redirect('edit_user', user_id=user_id)
 
@@ -265,23 +241,42 @@ def reset_user_orders(request, user_id):
 @staff_member_required(login_url='staff_login')
 def add_order_staff(request):
     if request.method == 'POST':
-        Order.objects.create(
-            product_name=request.POST.get('product_name'),
-            price=Decimal(request.POST.get('price')),
-            commission_rate=Decimal(request.POST.get('commission_rate', '0'))
-        )
-        return redirect('staffs')
+        try:
+            Order.objects.create(
+                product_name=request.POST.get('product_name', '').strip(),
+                price=Decimal(request.POST.get('price', '0').strip()),
+                commission_rate=Decimal(request.POST.get('commission_rate', '0').strip()),
+                image_url=request.POST.get('image_url', '').strip()
+            )
+            messages.success(request, "Order template created.")
+            return redirect('staffs')
+
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Invalid price or commission rate.")
+            return redirect('staffs')
+
     return render(request, 'staffs/add_order.html')
+
 
 @staff_member_required(login_url='staff_login')
 def edit_order_staff(request, order_id):
     order = get_object_or_404(Order, id=order_id)
+
     if request.method == 'POST':
-        order.product_name = request.POST.get('product_name')
-        order.price = Decimal(request.POST.get('price'))
-        order.commission_rate = Decimal(request.POST.get('commission_rate'))
-        order.save()
-        return redirect('staffs')
+        try:
+            order.product_name = request.POST.get('product_name', '').strip()
+            order.image_url = request.POST.get('image_url', '').strip()
+            order.price = Decimal(request.POST.get('price', '0').strip())
+            order.commission_rate = Decimal(request.POST.get('commission_rate', '0').strip())
+
+            order.save()
+
+            messages.success(request, "Order template updated.")
+            return redirect('staffs')
+
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Invalid price or commission rate.")
+
     return render(request, 'staffs/edit_order.html', {'order': order})
 
 @staff_member_required(login_url='staff_login')
@@ -306,7 +301,8 @@ def manual_assign_order(request, user_id):
                 price=template.price,
                 commission_rate=template.commission_rate,
                 status='scheduled',
-                scheduled_at=int(request.POST.get('target_num'))
+                scheduled_at=int(request.POST.get('target_num', 0)),
+                image_url=template.image_url # FIXED: Pass template image
             )
         return redirect('manual_assign_order', user_id=user_id)
     return render(request, 'staffs/manual_assign.html', {'target_user': target_user, 'templates': templates, 'scheduled_orders': scheduled_orders})
@@ -399,7 +395,9 @@ def start_matching(request):
     temp = random.choice(templates)
     order = Order.objects.create(
         user=request.user, product_name=temp.product_name,
-        price=temp.price, commission_rate=temp.commission_rate, status='pending'
+        price=temp.price, commission_rate=temp.commission_rate, 
+        status='pending',
+        image_url=temp.image_url # FIXED: Copy image from template
     )
     return render(request, 'users/confirm_order.html', {'order': order, 'profile': profile})
 
@@ -407,36 +405,22 @@ def start_matching(request):
 def complete_order(request, order_id):
     if request.method == 'POST':
         with transaction.atomic():
-            # Lock the order and the user profile to prevent race conditions
             order = get_object_or_404(Order.objects.select_for_update(), id=order_id, user=request.user)
             profile = request.user.profile
-            
-            # Check if order is already completed
             if order.status == 'completed': 
                 return redirect('user_order')
-            
-            # Check balance
             if profile.balance < order.price:
                 messages.error(request, "Insufficient funds.")
                 return redirect(f"{reverse('user_record')}?status=pending")
 
-            # 1. Update Balance
             profile.balance += order.profit 
-            
-            # 2. Update Total Earned (This will now work after your migration)
             profile.total_earned += order.profit 
-            
-            # 3. Update Order Status
             order.status = 'completed'
             order.save()
-            
-            # 4. Update Progress
             profile.current_progress += 1
             profile.save()
-            
             messages.success(request, f"Profit: ${order.profit}")
             return redirect('user_order')
-            
     return redirect('user_record')
 
 # ==========================================
@@ -467,14 +451,11 @@ def withdraw_funds(request):
         except (InvalidOperation, ValueError):
             amount = Decimal('0')
 
-        address = profile.wallet_address
-        network = profile.network
-        
         if amount < Decimal('10.00'):
             messages.error(request, "Minimum withdrawal is $10.00")
         elif amount > profile.balance:
             messages.error(request, "Insufficient balance.")
-        elif not address:
+        elif not profile.wallet_address:
             messages.error(request, "Wallet address is required.")
         else:
             with transaction.atomic():
@@ -482,7 +463,7 @@ def withdraw_funds(request):
                 profile.save()
                 Order.objects.create(
                     user=request.user,
-                    product_name=f"Withdrawal ({network}) to {address}",
+                    product_name=f"Withdrawal ({profile.network}) to {profile.wallet_address}",
                     price=amount, 
                     status='withdrawal'
                 )
@@ -506,9 +487,8 @@ def withdraw_funds(request):
 @login_required(login_url='user_login')
 def update_wallet_address(request):
     if request.method == 'POST':
-        address = request.POST.get('wallet_address')
         profile = request.user.profile
-        profile.wallet_address = address
+        profile.wallet_address = request.POST.get('wallet_address')
         profile.save()
         messages.success(request, "Wallet address updated successfully!")
     return redirect('user_wallet')
