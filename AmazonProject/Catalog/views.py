@@ -152,7 +152,7 @@ def staffs(request):
     total_profit_val = log_list.filter(status='completed').aggregate(Sum('profit'))['profit__sum'] or 0
     total_profit = Decimal(str(total_profit_val)).quantize(Decimal('0.01'))
     
-    logs_page = Paginator(log_list, 30).get_page(o_page_num)
+    logs_page = Paginator(log_list, 10).get_page(o_page_num)
 
     return render(request, 'staffs/staffs_main.html', {
         'users': users_page,
