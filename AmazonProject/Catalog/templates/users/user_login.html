@@ -6,161 +6,160 @@
     <title>Login | User Portal</title>
     <style>
         body {
-            margin: 0;
-            /* Using a vertical-friendly gradient for phones */
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
+            margin: 0; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; padding: 20px; box-sizing: border-box;
         }
-
         .login-card {
-            background: white;
-            padding: 30px 25px;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
+            background: white; padding: 40px 30px; border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); 
+            width: 100%; max-width: 420px; 
+            text-align: center; position: relative;
+        }
+        .avatar-circle {
+            background: #f1f5f9; width: 80px; height: 80px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;
+            color: #667eea; font-size: 32px; border: 4px solid #fff;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        h2 { margin: 0; color: #1e293b; font-size: 26px; font-weight: 800; letter-spacing: -0.025em; }
+        p.subtitle { color: #64748b; font-size: 15px; margin: 8px 0 30px 0; }
+
+        /* Floating Error Style */
+        .floating-error {
+            position: absolute; top: -15px; left: 20px; right: 20px;
+            background: #ef4444; color: white; padding: 14px; border-radius: 12px;
+            font-size: 13px; font-weight: 600; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+            z-index: 100; animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .avatar-circle {
-            background: #667eea;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        form p { text-align: left; margin-bottom: 20px; position: relative; } /* Added relative */
+        label { display: block; font-size: 11px; font-weight: 800; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        input[type="text"], input[type="password"] { 
+            width: 100%; padding: 14px 18px; border: 2px solid #f1f5f9; border-radius: 14px; 
+            box-sizing: border-box; font-size: 16px; background: #f8fafc;
+            transition: all 0.2s ease; outline: none; color: #1e293b;
+            padding-right: 45px; /* Space for eyeball */
+        }
+        input:focus { border-color: #667eea; background: #fff; box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1); }
+
+        /* Eyeball Style */
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            bottom: 12px; 
+            cursor: pointer;
+            color: #94a3b8;
             display: flex;
             align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px auto;
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+            user-select: none;
+            z-index: 5;
         }
-
-        h2 {
-            margin: 0;
-            color: #1a202c;
-            font-size: 24px;
-            font-weight: 800;
-        }
-
-        p.subtitle {
-            color: #718096;
-            font-size: 14px;
-            margin-top: 8px;
-            margin-bottom: 25px;
-        }
-
-        /* Django Form Styling */
-        form p {
-            text-align: left;
-            margin-bottom: 18px;
-        }
-
-        label {
-            display: block;
-            font-size: 12px;
-            font-weight: 700;
-            color: #4a5568;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        input {
-            width: 100%;
-            padding: 16px; /* Larger padding for easier finger tapping */
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-sizing: border-box;
-            font-size: 16px; /* 16px prevents iOS from auto-zooming on focus */
-            background: #f8fafc;
-            transition: all 0.2s ease;
-            -webkit-appearance: none; /* Removes default iOS styling */
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-        }
+        .password-toggle:hover { color: #667eea; }
 
         .signin-btn {
-            width: 100%;
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 800;
-            font-size: 16px;
-            margin-top: 10px;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-            -webkit-tap-highlight-color: transparent;
+            width: 100%; background: #667eea; color: white; border: none; padding: 16px;
+            border-radius: 14px; cursor: pointer; font-weight: 700; font-size: 16px; 
+            margin-top: 10px; transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.4);
         }
+        .signin-btn:hover { background: #5a67d8; transform: translateY(-1px); }
+        .signin-btn:active { transform: translateY(0); }
 
-        .signin-btn:active {
-            transform: scale(0.98);
-            background: #5a67d8;
-        }
-
-        .footer-link {
-            margin-top: 25px;
-            font-size: 14px;
-            color: #718096;
-        }
-
-        .footer-link a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 700;
-        }
-
-        /* Error Message Styling */
-        .error-msg {
-            padding: 12px;
-            background: #fff5f5;
-            color: #c53030;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 13px;
-            border: 1px solid #feb2b2;
-        }
-
-        .helptext { display: none; }
+        .footer-links { margin-top: 25px; font-size: 14px; color: #64748b; }
+        .footer-links a { color: #667eea; text-decoration: none; font-weight: 600; }
+        .footer-links a:hover { text-decoration: underline; }
+        
+        .errorlist { display: none; }
     </style>
 </head>
 <body>
-
     <div class="login-card">
-        <div class="avatar-circle">U</div>
-        <h2>User Login</h2>
-        <p class="subtitle">Enter details to access your portal</p>
-
-        {% if messages %}
-            {% for m in messages %}
-                <div class="error-msg">{{ m }}</div>
-            {% endfor %}
+        {% if messages or form.errors or form.non_field_errors %}
+            <div id="error-toast" class="floating-error">
+                {% if messages %}
+                    {% for m in messages %}{{ m }}{% endfor %}
+                {% elif form.non_field_errors %}
+                    {% for e in form.non_field_errors %}{{ e }}{% endfor %}
+                {% elif form.username.errors %}
+                    Invalid username or phone.
+                {% elif form.password.errors %}
+                    Invalid password.
+                {% else %}
+                    Authentication failed.
+                {% endif %}
+            </div>
         {% endif %}
+
+        <div class="avatar-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Log in to manage your account</p>
 
         <form method="post">
             {% csrf_token %}
-            {{ form.as_p }}
+            {% for field in form %}
+                <p>
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                </p>
+            {% endfor %}
             <button type="submit" class="signin-btn">Sign In</button>
         </form>
 
-        <div class="footer-link">
-            Don't have account? <a href="{% url 'user_register' %}">Register</a>
+        <div class="footer-links">
+            <div>Don't have an account? <a href="{% url 'user_register' %}">Sign Up</a></div>
+            <div style="margin-top: 10px; font-size: 12px;">
+                <a href="#" style="color: #94a3b8;">Forgot Password?</a>
+            </div>
         </div>
     </div>
 
+    <script>
+        // Eyeball toggle logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInputs = document.querySelectorAll('input[type="password"]');
+            passwordInputs.forEach(input => {
+                const toggleSpan = document.createElement('span');
+                toggleSpan.className = 'password-toggle';
+                toggleSpan.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>`;
+
+                toggleSpan.addEventListener('click', function() {
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        this.style.color = '#667eea';
+                    } else {
+                        input.type = 'password';
+                        this.style.color = '#94a3b8';
+                    }
+                });
+                input.parentNode.appendChild(toggleSpan);
+            });
+        });
+
+        // Toast logic
+        const toast = document.getElementById('error-toast');
+        if (toast) {
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000); 
+        }
+    </script>
 </body>
 </html>

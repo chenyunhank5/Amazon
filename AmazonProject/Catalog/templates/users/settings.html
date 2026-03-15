@@ -76,10 +76,10 @@
     </div>
 
     <div style="text-align: center;">
-        <form action="{% url 'user_logout' %}" method="post">
+        <form action="{% url 'user_logout' %}" method="post" style="display: inline;">
             {% csrf_token %}
-            <button type="submit" style="border: none; background: transparent; color: #ef4444; font-weight: 700; font-size: 12px; cursor: pointer; padding: 10px;">
-                LOGOUT ACCOUNT
+            <button type="submit" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0; font: inherit;">
+                    Logout
             </button>
         </form>
     </div>

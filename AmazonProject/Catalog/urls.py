@@ -37,13 +37,12 @@ urlpatterns = [
     path('dashboard/', views.user_dashboard, name='user_dashboard'),
     path('settings/', views.user_settings, name='user_settings'),
     
-    # --- UPDATED SECURITY SECTION ---
-    # This single path now handles both Login Password and Withdrawal PIN
+    # Security (Handles Login Password and Withdrawal PIN)
     path('settings/security/', views.security_settings, name='security_settings'),
-    # --------------------------------
     
     # Wallet Management
     path('wallet/edit/', views.edit_wallet, name='edit_wallet'),
+    path('wallet/update-address/', views.update_wallet_address, name='update_wallet_address'),
     
     # Tasks / Orders
     path('order/', views.user_order, name='user_order'),
@@ -55,3 +54,6 @@ urlpatterns = [
     path('withdraw/', views.withdraw_funds, name='withdraw_funds'),
     path('records/', views.user_record, name='user_record'),
 ]
+
+# This connects the 404 view from your views.py
+handler404 = 'Catalog.views.error_404_view'

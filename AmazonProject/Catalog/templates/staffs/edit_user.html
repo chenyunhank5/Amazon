@@ -4,33 +4,118 @@
     <meta charset="UTF-8">
     <title>Edit User | Staff Panel</title>
     <style>
-        body { margin: 0; background: #f0f2f5; font-family: sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; padding: 20px; }
-        .container { background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); width:100%; max-width:450px; }
-        .back-link { display: inline-block; margin-bottom: 15px; color: #7f8c8d; text-decoration: none; font-size: 14px; }
-        .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; }
-        .tab-btn { padding: 10px; cursor: pointer; border: none; background: #ddd; border-radius: 6px; flex: 1; font-weight: bold; }
-        .tab-btn.active { background: #3498db; color: white; }
+        body { 
+            margin: 0; 
+            background: #f0f2f5; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            padding: 20px; 
+            box-sizing: border-box;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 450px; 
+            position: relative; /* Required for floating messages */
+        }
+        .back-link { 
+            display: inline-block; 
+            margin-bottom: 20px; 
+            color: #7f8c8d; 
+            text-decoration: none; 
+            font-size: 14px; 
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: #3498db; }
+
+        /* Floating Message Toast */
+        .toast-msg {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideDown 0.4s ease-out;
+            transition: opacity 0.5s ease;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .tab-buttons { display: flex; gap: 8px; margin-bottom: 25px; background: #f8fafc; padding: 5px; border-radius: 10px; }
+        .tab-btn { 
+            padding: 10px; 
+            cursor: pointer; 
+            border: none; 
+            background: transparent; 
+            border-radius: 6px; 
+            flex: 1; 
+            font-weight: 600; 
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        .tab-btn.active { background: white; color: #3498db; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        input, select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; }
-        .msg { padding: 10px; margin-bottom: 15px; border-radius: 5px; text-align: center; font-size: 14px; }
+
+        label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 20px; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            background: #fdfdfd;
+        }
+        input:focus { outline: none; border-color: #3498db; background: white; }
+
+        .btn { 
+            width: 100%; 
+            padding: 14px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            color: white; 
+            font-weight: bold; 
+            font-size: 15px;
+            transition: filter 0.2s;
+        }
+        .btn:hover { filter: brightness(1.1); }
+        
+        h2 { margin: 0 0 5px 0; color: #1e293b; font-size: 22px; }
+        .user-sub { color: #94a3b8; font-size: 14px; margin-bottom: 20px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <a href="{% url 'staffs' %}?tab=users" class="back-link">&larr; Back to User Management</a>
-    
-    <h2>Edit: {{ user_to_edit.username }}</h2>
-
     {% if messages %}
         {% for m in messages %}
-            <div class="msg" style="background: {% if m.tags == 'success' %}#d4edda{% else %}#f8d7da{% endif %};">
+            <div class="toast-msg js-toast" style="background: {% if m.tags == 'success' %}#10b981{% else %}#ef4444{% endif %}; color: white;">
                 {{ m }}
             </div>
         {% endfor %}
     {% endif %}
+
+    <a href="{% url 'staffs' %}?tab=users" class="back-link">&larr; Back to User Management</a>
+    
+    <h2>Edit Profile</h2>
+    <span class="user-sub">Updating account: <strong>{{ user_to_edit.username }}</strong></span>
 
     <div class="tab-buttons">
         <button type="button" class="tab-btn active" onclick="openTab(event, 'info')">Info</button>
@@ -43,47 +128,61 @@
             {% csrf_token %}
             <label>Username</label>
             <input type="text" name="username" value="{{ user_to_edit.username }}" required>
-            <label>Order Progress</label>
+            <label>Order Progress (Current Task #)</label>
             <input type="number" name="current_progress" value="{{ user_to_edit.profile.current_progress }}" required>
-            <label>Phone</label>
+            <label>Phone Number</label>
             <input type="text" name="phone" value="{{ user_to_edit.profile.phone_number|default:'' }}">
-            <label>Withdrawal PIN</label>
-<input type="text" name="withdrawal_pin" value="{{ user_to_edit.profile.withdrawal_pin }}" maxlength="6">
-            <button type="submit" name="update_info" class="btn" style="background:#3498db;">Save Info</button>
+            <label>Withdrawal PIN (6 Digits)</label>
+            <input type="text" name="withdrawal_pin" value="{{ user_to_edit.profile.withdrawal_pin }}" maxlength="6">
+            <button type="submit" name="update_info" class="btn" style="background:#3498db;">Save Information</button>
         </form>
     </div>
 
     <div id="wallet" class="tab-content">
         <form method="post">
             {% csrf_token %}
-            <label>Network</label>
+            <label>Preferred Network</label>
             <select name="network">
                 <option value="ETH_USDC" {% if user_to_edit.profile.network == 'ETH_USDC' %}selected{% endif %}>ETH/USDC</option>
                 <option value="TRX_USDT" {% if user_to_edit.profile.network == 'TRX_USDT' %}selected{% endif %}>TRX/USDT (TRC20)</option>
                 <option value="BSC_USDT" {% if user_to_edit.profile.network == 'BSC_USDT' %}selected{% endif %}>BSC/USDT (BEP20)</option>
             </select>
-            <label>Wallet Address</label>
-            <input type="text" name="wallet_address" value="{{ user_to_edit.profile.wallet_address|default:'' }}">
-            <button type="submit" name="update_wallet" class="btn" style="background:#e67e22;">Update Wallet & Network</button>
+            <label>Crypto Wallet Address</label>
+            <input type="text" name="wallet_address" value="{{ user_to_edit.profile.wallet_address|default:'' }}" placeholder="Paste address here...">
+            <button type="submit" name="update_wallet" class="btn" style="background:#e67e22;">Update Wallet Info</button>
         </form>
     </div>
 
     <div id="security" class="tab-content">
         <form method="post">
             {% csrf_token %}
-            {{ password_form.as_p }}
-            <button type="submit" name="update_password" class="btn" style="background:#9b59b6;">Reset Password</button>
+            <div style="text-align: left; margin-bottom: 10px;">
+                {{ password_form.as_p }}
+            </div>
+            <button type="submit" name="update_password" class="btn" style="background:#9b59b6;">Reset User Password</button>
         </form>
     </div>
 </div>
 
 <script>
+    // Tab switching logic
     function openTab(evt, name) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(name).classList.add('active');
         evt.currentTarget.classList.add('active');
     }
+
+    // Auto-hide floating messages
+    window.addEventListener('DOMContentLoaded', () => {
+        const toasts = document.querySelectorAll('.js-toast');
+        toasts.forEach(toast => {
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000); // Disappear after 3 seconds
+        });
+    });
 </script>
 </body>
 </html>

@@ -19,17 +19,37 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: #475569; }
-        form p { margin-bottom: 20px; font-size: 14px; font-weight: 600; color: #475569; } /* For Django password_form.as_p */
         
-        input { width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 16px; font-size: 16px; margin-bottom: 15px; background: #fff; box-sizing: border-box; outline: none; }
+        /* Important: Position relative for eyeball placement */
+        form p, .input-group { position: relative; margin-bottom: 20px; font-size: 14px; font-weight: 600; color: #475569; }
+        
+        input { 
+            width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 16px; 
+            font-size: 16px; margin-bottom: 5px; background: #fff; box-sizing: border-box; 
+            outline: none; padding-right: 50px; /* Space for eyeball */
+        }
         input:focus { border-color: var(--primary); }
         
+        /* Eyeball Style */
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 42px; /* Adjusted for label height */
+            cursor: pointer;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            user-select: none;
+            z-index: 5;
+        }
+        /* Special adjustment for Django's password_form.as_p which doesn't have custom labels in the HTML */
+        #password-section .password-toggle { top: 18px; }
+
         .pin-input { letter-spacing: 8px; text-align: center; font-size: 20px; }
         .back-link { display: inline-flex; align-items: center; gap: 8px; color: #94a3b8; text-decoration: none; font-weight: 600; font-size: 14px; margin-bottom: 20px; }
         .submit-btn { width: 100%; padding: 16px; border: none; background: var(--primary); color: white; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; }
         
-        /* Form error list styling */
-        form ul { list-style: none; padding: 0; color: #ef4444; font-size: 12px; margin: -10px 0 10px 0; }
+        form ul { list-style: none; padding: 0; color: #ef4444; font-size: 12px; margin: 5px 0 10px 0; }
     </style>
 </head>
 <body>
@@ -68,14 +88,20 @@
             
             <form method="POST">
                 {% csrf_token %}
-                <label>Current PIN</label>
-                <input type="password" name="old_pin" class="pin-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
+                <div class="input-group">
+                    <label>Current PIN</label>
+                    <input type="password" name="old_pin" class="pin-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
+                </div>
 
-                <label>New 6-Digit PIN</label>
-                <input type="password" name="new_pin" class="pin-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
+                <div class="input-group">
+                    <label>New 6-Digit PIN</label>
+                    <input type="password" name="new_pin" class="pin-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
+                </div>
 
-                <label>Confirm New PIN</label>
-                <input type="password" name="confirm_pin" class="pin-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
+                <div class="input-group">
+                    <label>Confirm New PIN</label>
+                    <input type="password" name="confirm_pin" class="pin-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
+                </div>
 
                 <button type="submit" name="update_pin" class="submit-btn">Update Withdrawal PIN</button>
             </form>
@@ -89,15 +115,39 @@
 
 <script>
     function switchTab(sectionId, btnId) {
-        // Hide all sections
         document.querySelectorAll('.tab-content').forEach(section => section.classList.remove('active'));
-        // Deactivate all buttons
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        
-        // Show selected section and activate button
         document.getElementById(sectionId).classList.add('active');
         document.getElementById(btnId).classList.add('active');
     }
+
+    // Eyeball Toggle Logic for both tabs
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordInputs = document.querySelectorAll('input[type="password"]');
+        
+        passwordInputs.forEach(input => {
+            const toggleSpan = document.createElement('span');
+            toggleSpan.className = 'password-toggle';
+            toggleSpan.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>`;
+
+            toggleSpan.addEventListener('click', function() {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    this.style.color = 'var(--primary)';
+                } else {
+                    input.type = 'password';
+                    this.style.color = '#94a3b8';
+                }
+            });
+
+            // Insert toggle after the input
+            input.parentNode.appendChild(toggleSpan);
+        });
+    });
 </script>
 
 </body>

@@ -15,9 +15,11 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from .models import Profile, Order
-from .forms import UserRegistrationForm
+from .forms import UserRegistrationForm, CleanLoginForm
 
 # ==========================================
 # 1. GENERAL & AUTHENTICATION
@@ -30,6 +32,7 @@ def home(request):
     today = now.date()
     yesterday = today - timedelta(days=1)
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
     all_completed = Order.objects.filter(user=request.user, status='completed')
     earned_today = all_completed.filter(created_at__date=today).aggregate(Sum('profit'))['profit__sum'] or 0
     earned_yesterday = all_completed.filter(created_at__date=yesterday).aggregate(Sum('profit'))['profit__sum'] or 0
@@ -52,7 +55,9 @@ def staff_login(request):
                 return redirect('staffs')
             else:
                 messages.error(request, "Access denied. Staff only.")
-    return render(request, 'staffs/staffs_login.html', {'form': AuthenticationForm()})
+    else:
+        form = AuthenticationForm()
+    return render(request, 'staffs/staffs_login.html', {'form': form})
 
 def staff_logout(request):
     logout(request)
@@ -60,11 +65,13 @@ def staff_logout(request):
 
 def user_login(request):
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
+        form = CleanLoginForm(request, data=request.POST)
         if form.is_valid():
             login(request, form.get_user())
             return redirect('user_dashboard')
-    return render(request, 'users/user_login.html', {'form': AuthenticationForm()})
+    else:
+        form = CleanLoginForm()
+    return render(request, 'users/user_login.html', {'form': form})
 
 def user_logout(request):
     logout(request)
@@ -74,11 +81,21 @@ def user_register(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            profile = user.profile
-            profile.phone_number = form.cleaned_data.get('phone_number')
-            profile.save()
-            messages.success(request, 'Account created!')
+            # The form.clean_phone_number() now handles the UNIQUE check
+            with transaction.atomic():
+                user = form.save(commit=False)
+                user.set_password(form.cleaned_data.get('password'))
+                user.save()
+                
+                # Get or Create profile to avoid 'RelatedObjectDoesNotExist'
+                profile, created = Profile.objects.get_or_create(user=user)
+                profile.phone_number = form.cleaned_data.get('phone_number')
+                # Optional: set a default pin if your form doesn't have it yet
+                if 'withdrawal_pin' in form.cleaned_data:
+                    profile.withdrawal_pin = form.cleaned_data.get('withdrawal_pin')
+                profile.save()
+                
+            messages.success(request, 'Account created! Please log in.')
             return redirect('user_login')
     else:
         form = UserRegistrationForm()
@@ -271,7 +288,6 @@ def edit_order_staff(request, order_id):
             order.image_url = request.POST.get('image_url', '').strip()
             order.price = Decimal(request.POST.get('price', '0').strip())
             order.commission_rate = Decimal(request.POST.get('commission_rate', '0').strip())
-
             order.save()
 
             messages.success(request, "Order template updated.")
@@ -305,10 +321,14 @@ def manual_assign_order(request, user_id):
                 commission_rate=template.commission_rate,
                 status='scheduled',
                 scheduled_at=int(request.POST.get('target_num', 0)),
-                image_url=template.image_url # FIXED: Pass template image
+                image_url=template.image_url 
             )
         return redirect('manual_assign_order', user_id=user_id)
     return render(request, 'staffs/manual_assign.html', {'target_user': target_user, 'templates': templates, 'scheduled_orders': scheduled_orders})
+
+# ==========================================
+# 4. WALLET MANAGEMENT
+# ==========================================
 
 @login_required(login_url='user_login')
 def edit_wallet(request):
@@ -321,6 +341,15 @@ def edit_wallet(request):
         return redirect('user_settings')
         
     return render(request, 'users/edit_wallet.html', {'profile': profile})
+
+@login_required(login_url='user_login')
+def update_wallet_address(request):
+    if request.method == 'POST':
+        profile = request.user.profile
+        profile.wallet_address = request.POST.get('wallet_address')
+        profile.save()
+        messages.success(request, "Wallet address updated successfully!")
+    return redirect('user_wallet')
 
 # ==========================================
 # 5. USER PORTAL & MATCHING
@@ -400,7 +429,7 @@ def start_matching(request):
         user=request.user, product_name=temp.product_name,
         price=temp.price, commission_rate=temp.commission_rate, 
         status='pending',
-        image_url=temp.image_url # FIXED: Copy image from template
+        image_url=temp.image_url 
     )
     return render(request, 'users/confirm_order.html', {'order': order, 'profile': profile})
 
@@ -449,16 +478,14 @@ def user_wallet(request):
 def withdraw_funds(request):
     profile = request.user.profile
     if request.method == 'POST':
-        pin = request.POST.get('pin', '') # Get PIN from form
+        pin = request.POST.get('pin', '') 
         try:
             amount = Decimal(request.POST.get('amount', '0'))
         except (InvalidOperation, ValueError):
             amount = Decimal('0')
 
-        # 1. Check if PIN is correct
         if pin != profile.withdrawal_pin:
             messages.error(request, "Incorrect 6-digit PIN.")
-        # 2. Check Amount
         elif amount < Decimal('10.00'):
             messages.error(request, "Minimum withdrawal is $10.00")
         elif amount > profile.balance:
@@ -493,33 +520,21 @@ def withdraw_funds(request):
     })
 
 @login_required(login_url='user_login')
-def update_wallet_address(request):
-    if request.method == 'POST':
-        profile = request.user.profile
-        profile.wallet_address = request.POST.get('wallet_address')
-        profile.save()
-        messages.success(request, "Wallet address updated successfully!")
-    return redirect('user_wallet')
-
-@login_required(login_url='user_login')
 def security_settings(request):
     profile = request.user.profile
-    # Initialize the Django password form
     password_form = PasswordChangeForm(request.user)
 
     if request.method == 'POST':
-        # Logic for Login Password Tab
         if 'update_password' in request.POST:
             password_form = PasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
                 user = password_form.save()
-                update_session_auth_hash(request, user) # Keeps user logged in
+                update_session_auth_hash(request, user) 
                 messages.success(request, "Login password updated successfully!")
                 return redirect('security_settings')
             else:
-                messages.error(request, "Error updating password. Please check the requirements.")
+                messages.error(request, "Error updating password.")
 
-        # Logic for Withdrawal PIN Tab
         elif 'update_pin' in request.POST:
             old_pin = request.POST.get('old_pin')
             new_pin = request.POST.get('new_pin')
@@ -559,7 +574,7 @@ def reject_withdrawal(request, order_id):
         profile.save()
         order.status = 'rejected'
         order.save()
-    messages.warning(request, f"Withdrawal rejected. ${order.price} refunded to {order.user.username}.")
+    messages.warning(request, f"Withdrawal rejected. ${order.price} refunded.")
     return redirect(f"{reverse('staffs')}?tab=withdrawals")
 
 @login_required(login_url='user_login')

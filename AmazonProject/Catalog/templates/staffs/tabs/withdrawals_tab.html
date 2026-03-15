@@ -1,85 +1,97 @@
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-    <div>
-        <h3 style="margin:0;">Withdrawal Requests</h3>
-        <p style="font-size: 12px; color: #64748b; margin: 0;">Review and process user cash-out requests.</p>
-    </div>
-</div>
-
-<div style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-    <form method="get" style="display: flex; gap: 10px;">
+<div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #edf2f7;">
+    <form method="get" action="{% url 'staffs' %}" style="display: flex; gap: 10px;">
         <input type="hidden" name="tab" value="withdrawals">
-        <input type="text" name="withdrawal_search" placeholder="Search name or phone..." 
-               value="{{ withdrawal_search_query }}" 
-               style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none;">
-        <button type="submit" class="btn-sm btn-blue" style="padding: 0 20px; height: 40px;">Search</button>
+        <div style="position: relative; flex: 1;">
+            <input type="text" name="withdrawal_search" placeholder="Search by name, phone, or wallet..." 
+                   value="{{ withdrawal_search_query }}" 
+                   style="width: 100%; padding: 12px 12px 12px 40px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none;">
+            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </span>
+        </div>
+        <button type="submit" class="btn-sm btn-blue" style="padding: 0 25px; height: 44px;">Search</button>
         {% if withdrawal_search_query %}
-            <a href="?tab=withdrawals" class="btn-sm" style="background:#64748b; color:white; text-decoration:none; display:flex; align-items:center; padding: 0 15px; height: 40px; border-radius: 6px;">Clear</a>
+            <a href="?tab=withdrawals" class="btn-sm" style="background:#cbd5e1; color:#475569; text-decoration:none; display:flex; align-items:center; padding: 0 15px; height: 44px; border-radius: 8px; font-weight: bold;">Clear</a>
         {% endif %}
     </form>
 </div>
 
-<div style="overflow-x: auto;">
-    <table>
+<div style="overflow-x: auto; background: white; border-radius: 10px; border: 1px solid #f1f5f9;">
+    <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
         <thead>
-            <tr>
-                <th>User / Contact</th>
-                <th>Crypto Network & Address</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th style="text-align:right;">Actions</th>
+            <tr style="background: #f8fafc;">
+                <th style="padding: 14px 12px; border-bottom: 2px solid #edf2f7; text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b;">User / Contact</th>
+                <th style="padding: 14px 12px; border-bottom: 2px solid #edf2f7; text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b;">Crypto Network & Address</th>
+                <th style="padding: 14px 12px; border-bottom: 2px solid #edf2f7; text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b;">Amount</th>
+                <th style="padding: 14px 12px; border-bottom: 2px solid #edf2f7; text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b;">Status</th>
+                <th style="padding: 14px 12px; border-bottom: 2px solid #edf2f7; text-align: right; font-size: 11px; text-transform: uppercase; color: #64748b;">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for w in withdrawal_logs %}
-            <tr>
-                <td>
-                    <b>{{ w.user.username }}</b><br>
-                    <small style="color:#64748b;">{{ w.user.profile.phone_number }}</small>
+            <tr style="transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">
+                    <b style="color: #1e293b; font-size: 14px; display: block;">{{ w.user.username }}</b>
+                    <small style="color:#94a3b8; font-family: monospace;">{{ w.user.profile.phone_number }}</small>
                 </td>
-                <td>
-                    <div style="font-size: 12px; font-weight: 700; color: #1e293b;">
+                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">
+                    <div style="font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 4px;">
                         {{ w.product_name }}
                     </div>
-                    <div style="display: flex; align-items: center; gap: 5px;">
-                        <span id="addr_{{ w.id }}" style="font-size: 11px; color: #3b82f6; font-family: monospace; word-break: break-all; max-width: 180px;">
-                            {{ w.user.profile.wallet_address|default:"No Address" }}
+                    <div style="display: flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; width: fit-content;">
+                        <span style="font-size: 11px; color: #2563eb; font-family: 'Courier New', monospace; font-weight: 600;">
+                            {{ w.user.profile.wallet_address|default:"No Address Provided" }}
                         </span>
                         {% if w.user.profile.wallet_address %}
                         <button onclick="copyToClipboard('{{ w.user.profile.wallet_address }}', this)" 
-                                style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0;" title="Copy Address">
+                                style="background: white; border: 1px solid #e2e8f0; cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 4px; transition: all 0.2s;" 
+                                title="Copy Address">
                             📋
                         </button>
                         {% endif %}
                     </div>
                 </td>
-                <td style="color:#e74c3c; font-weight:bold;">-${{ w.price }}</td>
-                <td>
-                    <span class="badge 
-                        {% if w.status == 'withdrawn' %}badge-success
-                        {% elif w.status == 'withdrawal' %}badge-warning
-                        {% elif w.status == 'rejected' %}badge-red
-                        {% else %}badge-secondary{% endif %}">
-                        {% if w.status == 'withdrawal' %}PENDING
-                        {% elif w.status == 'withdrawn' %}SUCCESS
-                        {% elif w.status == 'rejected' %}REJECTED
-                        {% else %}{{ w.status|upper }}{% endif %}
-                    </span>
+                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">
+                    <span style="color:#dc2626; font-weight:800; font-size: 15px;">-${{ w.price }}</span>
                 </td>
-                <td style="text-align: right; white-space: nowrap;">
+                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">
                     {% if w.status == 'withdrawal' %}
-                        <a href="{% url 'approve_withdrawal' w.id %}" class="btn-sm" style="background:#27ae60; color:white; text-decoration:none; display:inline-block; padding: 6px 12px; border-radius: 4px; font-size: 11px;">Approve</a>
-                        <a href="{% url 'reject_withdrawal' w.id %}" class="btn-sm btn-red" style="text-decoration:none; display:inline-block; margin-left:3px; padding: 6px 12px; border-radius: 4px; font-size: 11px;" onclick="return confirm('Refund funds and reject this request?')">Reject</a>
+                        <span style="background: #fff7ed; color: #9a3412; border: 1px solid #ffedd5; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em;">PENDING</span>
                     {% elif w.status == 'withdrawn' %}
-                        <span style="color:#27ae60; font-size:12px; font-weight:bold;">✅ Completed</span>
+                        <span style="background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em;">SUCCESS</span>
                     {% elif w.status == 'rejected' %}
-                        <span style="color:#e74c3c; font-size:12px; font-weight:bold;">❌ Refunded</span>
+                        <span style="background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em;">REJECTED</span>
+                    {% else %}
+                        <span style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em;">{{ w.status|upper }}</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right; white-space: nowrap;">
+                    {% if w.status == 'withdrawal' %}
+                        <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                            <a href="{% url 'approve_withdrawal' w.id %}" class="btn-sm" 
+                               style="background:#10b981; color:white; text-decoration:none; padding: 8px 14px; border-radius: 6px; font-weight: 600;">Approve</a>
+                            <a href="{% url 'reject_withdrawal' w.id %}" class="btn-sm btn-red" 
+                               style="text-decoration:none; padding: 8px 14px; border-radius: 6px; font-weight: 600;" 
+                               onclick="return confirm('Refund funds and reject this request?')">Reject</a>
+                        </div>
+                    {% elif w.status == 'withdrawn' %}
+                        <div style="color:#10b981; font-size:12px; font-weight:700; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                            <span style="font-size: 16px;">✓</span> Processed
+                        </div>
+                    {% elif w.status == 'rejected' %}
+                        <div style="color:#ef4444; font-size:12px; font-weight:700; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                            <span style="font-size: 16px;">✕</span> Refunded
+                        </div>
                     {% endif %}
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align:center; padding:50px; color:#94a3b8;">
-                    No withdrawal requests found.
+                <td colspan="5" style="text-align:center; padding:60px; color:#94a3b8;">
+                    <div style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;">💸</div>
+                    <div style="font-size: 14px; font-weight: 500;">No withdrawal requests found.</div>
                 </td>
             </tr>
             {% endfor %}
@@ -88,25 +100,31 @@
 </div>
 
 <script>
-/**
- * Simple copy-to-clipboard function
- */
 function copyToClipboard(text, btn) {
     if (!navigator.clipboard) {
-        // Fallback for older browsers
         const el = document.createElement('textarea');
         el.value = text;
         document.body.appendChild(el);
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        btn.innerText = "✅";
-        setTimeout(() => { btn.innerText = "📋"; }, 2000);
+        showSuccess(btn);
         return;
     }
     navigator.clipboard.writeText(text).then(() => {
-        btn.innerText = "✅";
-        setTimeout(() => { btn.innerText = "📋"; }, 2000);
+        showSuccess(btn);
     });
+}
+
+function showSuccess(btn) {
+    const original = btn.innerText;
+    btn.innerText = "✅";
+    btn.style.borderColor = "#10b981";
+    btn.style.color = "#10b981";
+    setTimeout(() => { 
+        btn.innerText = original; 
+        btn.style.borderColor = "#e2e8f0";
+        btn.style.color = "initial";
+    }, 2000);
 }
 </script>

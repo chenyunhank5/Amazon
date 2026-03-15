@@ -1,54 +1,86 @@
-<form method="GET" action="{% url 'staffs' %}" style="margin-bottom: 20px;">
+<form method="GET" action="{% url 'staffs' %}" style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #edf2f7; display: flex; gap: 10px;">
     <input type="hidden" name="tab" value="templates">
-    
-    <div style="display: flex; gap: 8px;">
-        <input type="text" name="template_search" placeholder="Search templates..." 
+    <div style="position: relative; flex: 1;">
+        <input type="text" name="template_search" placeholder="Search products by name or ID..." 
                value="{{ template_search_query }}" 
-               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
-        <button type="submit" class="btn-sm btn-blue">Search</button>
+               style="width: 100%; padding: 12px 12px 12px 40px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none; transition: border 0.2s;">
+        <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+        </span>
     </div>
+    <button type="submit" class="btn-sm btn-blue" style="padding: 0 25px; height: 44px; font-size: 14px; font-weight: 600;">Search</button>
+    {% if template_search_query %}
+        <a href="{% url 'staffs' %}?tab=templates" class="btn-sm" style="background: #cbd5e1; color: #475569; display: flex; align-items: center; text-decoration: none; padding: 0 15px; height: 44px; border-radius: 8px; font-weight: bold;">Clear</a>
+    {% endif %}
 </form>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-    <h3 style="margin:0;">Task Templates</h3>
-    <a href="{% url 'add_order_staff' %}" class="btn-sm btn-balance">+ Create New Template</a>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding: 0 5px;">
+    <div>
+        <h3 style="margin:0; color: #1e293b; font-size: 18px;">Product Templates</h3>
+        <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Manage the items available for user task matching.</p>
+    </div>
+    <a href="{% url 'add_order_staff' %}" class="btn-sm btn-balance" style="padding: 10px 20px; display: flex; align-items: center; gap: 8px; text-decoration: none; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <span style="font-size: 20px; line-height: 0;">+</span> Add New Product
+    </a>
 </div>
 
-<table style="width: 100%; border-collapse: collapse;">
-    <thead>
-        <tr>
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left;">Image</th>
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left;">Product Name</th>
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left;">Price</th>
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left;">Commission %</th>
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: right;">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for o in task_templates %}
-        <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">
-                {% if o.image_url %}
-                    <a href="{{ o.image_url }}" target="_blank">
-                        <img src="{{ o.image_url }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;">
-                    </a>
-                {% else %}
-                    <div style="width: 40px; height: 40px; background: #f8fafc; border-radius: 6px; border: 1px dashed #ddd; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #94a3b8;">N/A</div>
-                {% endif %}
-            </td>
-            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">{{ o.product_name }}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">${{ o.price }}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; color:#3498db; font-weight:bold;">{{ o.commission_rate }}%</td>
-            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: right;">
-                <a href="{% url 'edit_order_staff' o.id %}" class="btn-sm btn-blue">Edit</a>
-                <form action="{% url 'delete_order_staff' o.id %}" method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-sm btn-red" onclick="return confirm('Delete template?')">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5" style="text-align:center; padding: 20px; color:#94a3b8;">No templates found.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div style="overflow-x: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+    <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
+        <thead>
+            <tr style="background: #f8fafc;">
+                <th style="padding: 16px 15px; border-bottom: 2px solid #edf2f7; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; width: 60px;">Preview</th>
+                <th style="padding: 16px 15px; border-bottom: 2px solid #edf2f7; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">Product Name & ID</th>
+                <th style="padding: 16px 15px; border-bottom: 2px solid #edf2f7; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">Unit Price</th>
+                <th style="padding: 16px 15px; border-bottom: 2px solid #edf2f7; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">Commission</th>
+                <th style="padding: 16px 15px; border-bottom: 2px solid #edf2f7; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">Manage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in task_templates %}
+            <tr style="transition: all 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 15px; border-bottom: 1px solid #f1f5f9;">
+                    {% if o.image_url %}
+                        <div style="position: relative; width: 50px; height: 50px;">
+                            <img src="{{ o.image_url }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff;">
+                            <a href="{{ o.image_url }}" target="_blank" style="position: absolute; bottom: -2px; right: -2px; background: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; text-decoration: none; font-size: 10px;">🔍</a>
+                        </div>
+                    {% else %}
+                        <div style="width: 50px; height: 50px; background: #f1f5f9; border-radius: 10px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase;">No Img</div>
+                    {% endif %}
+                </td>
+                <td style="padding: 15px; border-bottom: 1px solid #f1f5f9;">
+                    <div style="font-weight: 700; color: #1e293b; font-size: 14px; margin-bottom: 2px;">{{ o.product_name }}</div>
+                    <span style="font-family: monospace; font-size: 10px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 4px;">ID_{{ o.id }}</span>
+                </td>
+                <td style="padding: 15px; border-bottom: 1px solid #f1f5f9;">
+                    <div style="font-weight: 800; color: #334155; font-size: 15px;">${{ o.price }}</div>
+                </td>
+                <td style="padding: 15px; border-bottom: 1px solid #f1f5f9;">
+                    <div style="display: inline-flex; align-items: center; background: #f0f9ff; color: #0369a1; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 800; border: 1px solid #e0f2fe;">
+                        <span style="margin-right: 3px;">📈</span> {{ o.commission_rate }}%
+                    </div>
+                </td>
+                <td style="padding: 15px; border-bottom: 1px solid #f1f5f9; text-align: right;">
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <a href="{% url 'edit_order_staff' o.id %}" class="btn-sm btn-blue" style="text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: 600;">Edit</a>
+                        <form action="{% url 'delete_order_staff' o.id %}" method="post" style="display:inline;" onsubmit="return confirm('WARNING: This will permanently remove this product template. Continue?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-sm btn-red" style="padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align:center; padding: 100px 20px; color:#94a3b8;">
+                    <div style="font-size: 54px; margin-bottom: 15px; filter: grayscale(1); opacity: 0.4;">🛍️</div>
+                    <div style="font-size: 16px; font-weight: 600; color: #64748b;">No products available</div>
+                    <p style="font-size: 13px; margin-top: 5px;">Create your first template to start matching tasks.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

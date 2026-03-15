@@ -98,3 +98,9 @@ LOGIN_REDIRECT_URL = 'staffs'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Add this near your other AUTH settings
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Default
+    'Catalog.backends.UsernameOrPhoneBackend',    # Your new custom backend
+]
