@@ -47,6 +47,8 @@
             <input type="number" name="current_progress" value="{{ user_to_edit.profile.current_progress }}" required>
             <label>Phone</label>
             <input type="text" name="phone" value="{{ user_to_edit.profile.phone_number|default:'' }}">
+            <label>Withdrawal PIN</label>
+<input type="text" name="withdrawal_pin" value="{{ user_to_edit.profile.withdrawal_pin }}" maxlength="6">
             <button type="submit" name="update_info" class="btn" style="background:#3498db;">Save Info</button>
         </form>
     </div>

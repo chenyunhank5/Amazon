@@ -12,6 +12,7 @@ class Profile(models.Model):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     total_earned = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     current_progress = models.IntegerField(default=0)
+    withdrawal_pin = models.CharField(max_length=6, default="000000")
     
     # Timestamps for tracking
     created_at = models.DateTimeField(auto_now_add=True)

@@ -13,6 +13,8 @@ from django.urls import reverse
 from django.core.paginator import Paginator
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
 
 from .models import Profile, Order
 from .forms import UserRegistrationForm
@@ -202,6 +204,7 @@ def edit_user(request, user_id):
             user_to_edit.save()
             profile.current_progress = int(request.POST.get('current_progress', 0))
             profile.phone_number = request.POST.get('phone', '')
+            profile.withdrawal_pin = request.POST.get('withdrawal_pin', '000000')
             profile.save()
             messages.success(request, "Profile updated successfully!")
         
@@ -446,12 +449,17 @@ def user_wallet(request):
 def withdraw_funds(request):
     profile = request.user.profile
     if request.method == 'POST':
+        pin = request.POST.get('pin', '') # Get PIN from form
         try:
             amount = Decimal(request.POST.get('amount', '0'))
         except (InvalidOperation, ValueError):
             amount = Decimal('0')
 
-        if amount < Decimal('10.00'):
+        # 1. Check if PIN is correct
+        if pin != profile.withdrawal_pin:
+            messages.error(request, "Incorrect 6-digit PIN.")
+        # 2. Check Amount
+        elif amount < Decimal('10.00'):
             messages.error(request, "Minimum withdrawal is $10.00")
         elif amount > profile.balance:
             messages.error(request, "Insufficient balance.")
@@ -493,6 +501,47 @@ def update_wallet_address(request):
         messages.success(request, "Wallet address updated successfully!")
     return redirect('user_wallet')
 
+@login_required(login_url='user_login')
+def security_settings(request):
+    profile = request.user.profile
+    # Initialize the Django password form
+    password_form = PasswordChangeForm(request.user)
+
+    if request.method == 'POST':
+        # Logic for Login Password Tab
+        if 'update_password' in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user) # Keeps user logged in
+                messages.success(request, "Login password updated successfully!")
+                return redirect('security_settings')
+            else:
+                messages.error(request, "Error updating password. Please check the requirements.")
+
+        # Logic for Withdrawal PIN Tab
+        elif 'update_pin' in request.POST:
+            old_pin = request.POST.get('old_pin')
+            new_pin = request.POST.get('new_pin')
+            confirm_pin = request.POST.get('confirm_pin')
+
+            if old_pin != profile.withdrawal_pin:
+                messages.error(request, "Current Withdrawal PIN is incorrect.")
+            elif new_pin != confirm_pin:
+                messages.error(request, "New PINs do not match.")
+            elif len(new_pin) != 6 or not new_pin.isdigit():
+                messages.error(request, "PIN must be exactly 6 digits.")
+            else:
+                profile.withdrawal_pin = new_pin
+                profile.save()
+                messages.success(request, "Withdrawal PIN updated successfully!")
+                return redirect('security_settings')
+
+    return render(request, 'users/security.html', {
+        'profile': profile,
+        'password_form': password_form
+    })
+    
 @staff_member_required(login_url='staff_login')
 def approve_withdrawal(request, order_id):
     order = get_object_or_404(Order, id=order_id, status='withdrawal')

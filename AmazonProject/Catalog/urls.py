@@ -1,5 +1,4 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views # Added for password change
 from . import views
 
 urlpatterns = [
@@ -38,13 +37,10 @@ urlpatterns = [
     path('dashboard/', views.user_dashboard, name='user_dashboard'),
     path('settings/', views.user_settings, name='user_settings'),
     
-    # Security / Password Change
-    path('settings/security/change-password/', 
-         auth_views.PasswordChangeView.as_view(template_name='users/password_change.html'), 
-         name='password_change'),
-    path('settings/security/change-password/done/', 
-         auth_views.PasswordChangeDoneView.as_view(template_name='users/password_change_done.html'), 
-         name='password_change_done'),
+    # --- UPDATED SECURITY SECTION ---
+    # This single path now handles both Login Password and Withdrawal PIN
+    path('settings/security/', views.security_settings, name='security_settings'),
+    # --------------------------------
     
     # Wallet Management
     path('wallet/edit/', views.edit_wallet, name='edit_wallet'),

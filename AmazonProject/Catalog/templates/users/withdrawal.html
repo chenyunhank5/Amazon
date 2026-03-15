@@ -16,10 +16,12 @@
         .balance-card { background: white; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; text-align: center; margin-bottom: 20px; }
         .card { background: white; padding: 24px; border-radius: 28px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
-        input { width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 16px; font-size: 16px; margin: 8px 0 16px 0; background: #fff; }
+        input { width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 16px; font-size: 16px; margin: 8px 0 16px 0; background: #fff; outline: none; transition: border-color 0.2s; }
+        input:focus { border-color: var(--primary); }
         .locked-input { background: #f8fafc; color: #64748b; cursor: not-allowed; border: 1px solid #e2e8f0; }
         
-        button { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; }
+        button { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; transition: opacity 0.2s; }
+        button:active { opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -67,6 +69,18 @@
                         <span id="net-amount" style="font-weight: 800;">$0.00</span>
                     </div>
                 </div>
+
+                <label style="font-weight: 600; font-size: 14px; display: block; margin-top: 15px;">Withdrawal PIN (6 Digits)</label>
+                <input type="password" 
+                    name="pin" 
+                    id="pin"
+                    placeholder="••••••" 
+                    inputmode="numeric" 
+                    pattern="[0-9]{6}" 
+                    maxlength="6" 
+                    required 
+                    style="letter-spacing: 8px; text-align: center;">
+
                 <button type="submit">Confirm Withdrawal</button>
             </form>
         </div>
@@ -79,7 +93,7 @@
                     <div style="font-size: 14px; font-weight: 700;">${{ w.price }}</div>
                     <div style="font-size: 11px; color: var(--inactive);">{{ w.created_at|date:"M d, H:i" }}</div>
                 </div>
-                <div style="font-size: 12px; font-weight: 800; color: {% if w.status == 'withdrawn' %}#16a34a{% else %}#f59e0b{% endif %};">
+                <div style="font-size: 12px; font-weight: 800; color: {% if w.status == 'withdrawn' %}#16a34a{% elif w.status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">
                     {{ w.status|upper }}
                 </div>
             </div>
@@ -101,17 +115,20 @@
         </div>
     </main>
 
-    <script>
-        const amountInput = document.getElementById('amount');
-        const summaryBox = document.getElementById('summary-box');
-        const netAmountDisplay = document.getElementById('net-amount');
-        amountInput.addEventListener('input', function() {
+    <!--<script>
+       # const amountInput = document.getElementById('amount');
+       # const summaryBox = document.getElementById('summary-box');
+       # const netAmountDisplay = document.getElementById('net-amount');
+        
+       # amountInput.addEventListener('input', function() {
             const val = parseFloat(this.value);
             if (val > 2) {
                 summaryBox.style.display = 'block';
                 netAmountDisplay.innerText = '$' + (val - 2).toFixed(2);
-            } else { summaryBox.style.display = 'none'; }
+            } else { 
+                summaryBox.style.display = 'none'; 
+            }
         });
-    </script>
+    </script>-->
 </body>
 </html>
