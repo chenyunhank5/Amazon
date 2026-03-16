@@ -107,15 +107,15 @@
     
     <div style="display: flex; gap: 5px;">
         {% if withdrawal_logs.has_previous %}
-            <a href="?withdrawal_page={{ withdrawal_logs.previous_page_number }}&tab=withdrawals{% if withdrawal_search_query %}&withdrawal_search={{ withdrawal_search_query }}{% endif %}" 
-               style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px;">
+            <a href="?tab=withdrawals&withdrawal_page={{ withdrawal_logs.previous_page_number }}{% if withdrawal_search_query %}&withdrawal_search={{ withdrawal_search_query }}{% endif %}" 
+               style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; display: flex; align-items: center;">
                &larr; Prev
             </a>
         {% endif %}
 
         {% if withdrawal_logs.has_next %}
-            <a href="?withdrawal_page={{ withdrawal_logs.next_page_number }}&tab=withdrawals{% if withdrawal_search_query %}&withdrawal_search={{ withdrawal_search_query }}{% endif %}" 
-               style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px;">
+            <a href="?tab=withdrawals&withdrawal_page={{ withdrawal_logs.next_page_number }}{% if withdrawal_search_query %}&withdrawal_search={{ withdrawal_search_query }}{% endif %}" 
+               style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; display: flex; align-items: center;">
                Next &rarr;
             </a>
         {% endif %}

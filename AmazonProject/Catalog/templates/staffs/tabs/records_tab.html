@@ -97,10 +97,11 @@
 
         {% if user_logs.has_next %}
             <a href="?log_page={{ user_logs.next_page_number }}{% if order_search_query %}&order_search={{ order_search_query }}{% endif %}&tab=records" 
-               class="btn-sm btn-blue" style="text-decoration:none; padding: 8px 16px;">Next &raquo;</a>
+               class="btn-sm btn-blue" style="text-decoration:none; padding: 8px 16px;" style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px;">Next &raquo;</a>
         {% else %}
-            <span class="btn-sm" style="background: #f1f5f9; color: #cbd5e1; cursor: not-allowed; padding: 8px 16px; border: 1px solid #e2e8f0;">Next &raquo;</span>
+            <span class="btn-sm" style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px;">Next &raquo;</span>
         {% endif %}
+        
     </div>
 </div>
 {% endif %}

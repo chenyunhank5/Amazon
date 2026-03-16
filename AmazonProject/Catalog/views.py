@@ -114,7 +114,7 @@ def staffs(request):
     
     u_page_num = request.GET.get('page', 1)
     t_page_num = request.GET.get('t_page', 1)
-    w_page_num = request.GET.get('w_page', 1)
+    w_page_num = request.GET.get('withdrawal_page', 1)
     o_page_num = request.GET.get('log_page', 1)
 
     user_list = User.objects.filter(is_staff=False, is_superuser=False).select_related('profile').order_by('-id')
