@@ -64,11 +64,21 @@ WSGI_APPLICATION = "AmazonProject.wsgi.application"
 # --- DATABASE CONFIGURATION ---
 # Switches to Postgres on Railway, stays SQLite locally
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600
+    'default': dj_database_url.config(
+        # This looks for the DATABASE_URL environment variable on Railway
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
     )
 }
+
+# Safety Check: If for some reason DATABASE_URL is missing, 
+# you can fallback to SQLite ONLY for local development
+if not DATABASES['default']:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 
 # --- CORS & SECURITY SETTINGS ---
 # This allows your Wix site to access your Django data
