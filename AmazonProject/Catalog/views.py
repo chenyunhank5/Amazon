@@ -136,7 +136,7 @@ def staffs(request):
             Q(user__username__icontains=w_search) | 
             Q(user__profile__phone_number__icontains=w_search)
         )
-    withdrawals_page = Paginator(withdrawal_list, 30).get_page(w_page_num)
+    withdrawals_page = Paginator(withdrawal_list, 20).get_page(w_page_num)
 
     log_list = Order.objects.filter(user__isnull=False).exclude(
         status__in=['withdrawal', 'withdrawn', 'rejected', 'scheduled']
@@ -158,6 +158,7 @@ def staffs(request):
         'users': users_page,
         'task_templates': templates_page,
         'withdrawal_logs': withdrawals_page,
+        'withdrawals_page': withdrawals_page,
         'user_logs': logs_page,
         'total_profit': total_profit,
         'search_query': u_search,

@@ -77,10 +77,28 @@
                 <td colspan="5" style="text-align:center; padding: 100px 20px; color:#94a3b8;">
                     <div style="font-size: 54px; margin-bottom: 15px; filter: grayscale(1); opacity: 0.4;">🛍️</div>
                     <div style="font-size: 16px; font-weight: 600; color: #64748b;">No products available</div>
-                    <p style="font-size: 13px; margin-top: 5px;">Create your first template to start matching tasks.</p>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+{% if task_templates.has_other_pages %}
+<div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px 15px; border-radius: 8px; border: 1px solid #edf2f7;">
+    <span style="font-size:13px; color:#64748b;">
+        Showing page <strong>{{ task_templates.number }}</strong> of {{ task_templates.paginator.num_pages }}
+    </span>
+    <div style="display: flex; gap: 5px;">
+        {% if task_templates.has_previous %}
+            <a href="?template_page={{ task_templates.previous_page_number }}&tab=templates{% if template_search_query %}&template_search={{ template_search_query }}{% endif %}" 
+               class="btn-sm" style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px;">&larr; Prev</a>
+        {% endif %}
+
+        {% if task_templates.has_next %}
+            <a href="?template_page={{ task_templates.next_page_number }}&tab=templates{% if template_search_query %}&template_search={{ template_search_query }}{% endif %}" 
+               class="btn-sm" style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px;">Next &rarr;</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

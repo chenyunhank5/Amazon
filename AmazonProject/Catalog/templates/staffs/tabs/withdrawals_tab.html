@@ -98,6 +98,30 @@
         </tbody>
     </table>
 </div>
+{% if withdrawal_logs.has_other_pages %} 
+<div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px 15px; border-radius: 8px; border: 1px solid #edf2f7;">
+    
+    <span style="font-size:13px; color:#64748b;">
+        Showing page <strong>{{ withdrawal_logs.number }}</strong> of {{ withdrawal_logs.paginator.num_pages }}
+    </span>
+    
+    <div style="display: flex; gap: 5px;">
+        {% if withdrawal_logs.has_previous %}
+            <a href="?withdrawal_page={{ withdrawal_logs.previous_page_number }}&tab=withdrawals{% if withdrawal_search_query %}&withdrawal_search={{ withdrawal_search_query }}{% endif %}" 
+               style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px;">
+               &larr; Prev
+            </a>
+        {% endif %}
+
+        {% if withdrawal_logs.has_next %}
+            <a href="?withdrawal_page={{ withdrawal_logs.next_page_number }}&tab=withdrawals{% if withdrawal_search_query %}&withdrawal_search={{ withdrawal_search_query }}{% endif %}" 
+               style="background:white; border: 1px solid #e2e8f0; color:#475569; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 13px;">
+               Next &rarr;
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 
 <script>
 function copyToClipboard(text, btn) {
