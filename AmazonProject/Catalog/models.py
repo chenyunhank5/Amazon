@@ -78,6 +78,7 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         # Auto-calculate profit based on commission rate: (Price * Rate) / 100
+        # This ensures profit is always updated before saving to the database
         if self.price is not None and self.commission_rate is not None:
             self.profit = (self.price * self.commission_rate) / Decimal('100')
         super().save(*args, **kwargs)
@@ -100,5 +101,5 @@ def manage_user_profile(sender, instance, created, **kwargs):
         Profile.objects.create(user=instance)
     else:
         # get_or_create is the safest way to ensure no RelatedObjectDoesNotExist errors
-        profile, _ = Profile.objects.get_or_create(user=instance)
-        profile.save()
+        # Note: We removed the extra .save() here to prevent unnecessary recursion
+        Profile.objects.get_or_create(user=instance)

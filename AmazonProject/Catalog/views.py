@@ -12,7 +12,7 @@ from django.db import transaction
 from django.urls import reverse
 from django.core.paginator import Paginator
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, time # Added time for precise ranges
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django import forms
@@ -37,14 +37,23 @@ VIP_CONFIG = {
 def home(request):
     profile = request.user.profile
     now = timezone.now()
-    today = now.date()
-    yesterday = today - timedelta(days=1)
+    
+    # Precise Date Range logic to fix the $0.00 issue
+    today_start = timezone.make_aware(timezone.datetime.combine(now.date(), time.min))
+    today_end = timezone.make_aware(timezone.datetime.combine(now.date(), time.max))
+    
+    yesterday_date = now.date() - timedelta(days=1)
+    yesterday_start = timezone.make_aware(timezone.datetime.combine(yesterday_date, time.min))
+    yesterday_end = timezone.make_aware(timezone.datetime.combine(yesterday_date, time.max))
+    
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
     all_completed = Order.objects.filter(user=request.user, status='completed')
-    earned_today = all_completed.filter(created_at__date=today).aggregate(Sum('profit'))['profit__sum'] or 0
-    earned_yesterday = all_completed.filter(created_at__date=yesterday).aggregate(Sum('profit'))['profit__sum'] or 0
-    earned_this_month = all_completed.filter(created_at__gte=start_of_month).aggregate(Sum('profit'))['profit__sum'] or 0
+    
+    # Fixed Filters using __range to ensure timezone accuracy
+    earned_today = all_completed.filter(created_at__range=(today_start, today_end)).aggregate(Sum('profit'))['profit__sum'] or Decimal('0.00')
+    earned_yesterday = all_completed.filter(created_at__range=(yesterday_start, yesterday_end)).aggregate(Sum('profit'))['profit__sum'] or Decimal('0.00')
+    earned_this_month = all_completed.filter(created_at__gte=start_of_month).aggregate(Sum('profit'))['profit__sum'] or Decimal('0.00')
 
     return render(request, 'users/home.html', {
         'profile': profile,
@@ -89,20 +98,15 @@ def user_register(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            # The form.clean_phone_number() now handles the UNIQUE check
             with transaction.atomic():
                 user = form.save(commit=False)
                 user.set_password(form.cleaned_data.get('password'))
                 user.save()
-                
-                # Get or Create profile to avoid 'RelatedObjectDoesNotExist'
                 profile, created = Profile.objects.get_or_create(user=user)
                 profile.phone_number = form.cleaned_data.get('phone_number')
-                # Optional: set a default pin if your form doesn't have it yet
                 if 'withdrawal_pin' in form.cleaned_data:
                     profile.withdrawal_pin = form.cleaned_data.get('withdrawal_pin')
                 profile.save()
-                
             messages.success(request, 'Account created! Please log in.')
             return redirect('user_login')
     else:
@@ -220,49 +224,34 @@ def add_user(request):
 
 @staff_member_required(login_url='staff_login')
 def edit_user(request, user_id):
-    # Fetch user and profile
     user_to_edit = get_object_or_404(User, id=user_id)
     profile, created = Profile.objects.get_or_create(user=user_to_edit)
-    
-    # Initialize the password form
     password_form = SetPasswordForm(user_to_edit)
 
     if request.method == 'POST':
-        # 1. Handle General Info Tab (includes VIP and Balance)
         if 'update_info' in request.POST:
             new_username = request.POST.get('username')
-            
-            # Check if username is taken by someone else
             if User.objects.filter(username=new_username).exclude(id=user_id).exists():
                 messages.error(request, "Username already exists. Please choose another.")
             else:
                 user_to_edit.username = new_username
                 user_to_edit.save()
-
-                # Update Profile Fields
                 profile.vip_level = int(request.POST.get('vip_level', 1))
                 profile.current_progress = int(request.POST.get('current_progress', 0))
                 profile.phone_number = request.POST.get('phone', '')
                 profile.withdrawal_pin = request.POST.get('withdrawal_pin', '000000')
-                
-                # Convert balance to Decimal for precision
                 try:
                     balance_val = request.POST.get('balance', '0.00')
                     profile.balance = Decimal(balance_val)
                 except:
                     messages.error(request, "Invalid balance format.")
-
                 profile.save()
                 messages.success(request, f"Profile for {user_to_edit.username} updated successfully!")
-
-        # 2. Handle Wallet Tab
         elif 'update_wallet' in request.POST:
             profile.wallet_address = request.POST.get('wallet_address', '')
             profile.network = request.POST.get('network', 'ETH_USDC')
             profile.save()
             messages.success(request, "Wallet and network updated!")
-
-        # 3. Handle Password Reset Tab
         elif 'update_password' in request.POST:
             password_form = SetPasswordForm(user_to_edit, request.POST)
             if password_form.is_valid():
@@ -270,10 +259,8 @@ def edit_user(request, user_id):
                 messages.success(request, "Password has been reset successfully!")
             else:
                 messages.error(request, "Password reset failed. Please check the requirements.")
-
         return redirect('edit_user', user_id=user_id)
 
-    # Context for rendering the page
     return render(request, 'staffs/edit_user.html', {
         'user_to_edit': user_to_edit, 
         'password_form': password_form
@@ -305,18 +292,14 @@ def add_order_staff(request):
             )
             messages.success(request, "Order template created.")
             return redirect('staffs')
-
         except (InvalidOperation, ValueError):
             messages.error(request, "Invalid price or commission rate.")
             return redirect('staffs')
-
     return render(request, 'staffs/add_order.html')
-
 
 @staff_member_required(login_url='staff_login')
 def edit_order_staff(request, order_id):
     order = get_object_or_404(Order, id=order_id)
-
     if request.method == 'POST':
         try:
             order.product_name = request.POST.get('product_name', '').strip()
@@ -324,13 +307,10 @@ def edit_order_staff(request, order_id):
             order.price = Decimal(request.POST.get('price', '0').strip())
             order.commission_rate = Decimal(request.POST.get('commission_rate', '0').strip())
             order.save()
-
             messages.success(request, "Order template updated.")
             return redirect('staffs')
-
         except (InvalidOperation, ValueError):
             messages.error(request, "Invalid price or commission rate.")
-
     return render(request, 'staffs/edit_order.html', {'order': order})
 
 @staff_member_required(login_url='staff_login')
@@ -343,7 +323,6 @@ def manual_assign_order(request, user_id):
     target_user = get_object_or_404(User, id=user_id)
     templates = Order.objects.filter(user__isnull=True).order_by('price')
     scheduled_orders = target_user.orders.filter(status='scheduled').order_by('scheduled_at')
-
     if request.method == 'POST':
         if 'delete_scheduled' in request.POST:
             get_object_or_404(Order, id=request.POST.get('order_id'), user=target_user).delete()
@@ -374,7 +353,6 @@ def edit_wallet(request):
         profile.save()
         messages.success(request, "Wallet and network preferences saved!")
         return redirect('user_settings')
-        
     return render(request, 'users/edit_wallet.html', {'profile': profile})
 
 @login_required(login_url='user_login')
@@ -397,20 +375,12 @@ def user_dashboard(request):
 @login_required(login_url='user_login')
 def user_order(request):
     profile = request.user.profile
-    
-    # Get config based on user level, fallback to VIP 1 if not found
     config = VIP_CONFIG.get(profile.vip_level, VIP_CONFIG[1])
     max_orders = config['limit']
-    
-    # Calculate percentage for the progress bar
     current_progress = profile.current_progress
     percentage = (current_progress / max_orders * 100) if max_orders > 0 else 0
     if percentage > 100: percentage = 100
-
-    orders = request.user.orders.exclude(
-        status__in=['scheduled', 'withdrawal', 'withdrawn']
-    ).order_by('-created_at')
-
+    orders = request.user.orders.exclude(status__in=['scheduled', 'withdrawal', 'withdrawn']).order_by('-created_at')
     return render(request, 'users/order.html', {
         'profile': profile, 
         'orders': orders, 
@@ -432,14 +402,11 @@ def user_record(request):
             output_field=IntegerField(),
         )
     ).order_by('priority', '-created_at')
-
     if status_filter in ['pending', 'completed']:
         orders = orders.filter(status=status_filter)
-    
     paginator = Paginator(orders, 10) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-        
     return render(request, 'users/record.html', {
         'profile': request.user.profile, 
         'orders': page_obj, 
@@ -449,57 +416,36 @@ def user_record(request):
 @login_required(login_url='user_login')
 def start_matching(request):
     profile = request.user.profile
-
-    # 1. Check Daily Limit using model property
     if profile.is_at_limit:
-        messages.error(
-            request, 
-            f"Daily limit of {profile.max_limit} reached for VIP {profile.vip_level}."
-        )
+        messages.error(request, f"Daily limit of {profile.max_limit} reached for VIP {profile.vip_level}.")
         return redirect('user_order')
-
-    # 2. Handle Scheduled "Traps" (Admin assigned)
-    # Check if there is an order scheduled for the user's next progress number
     next_order_num = profile.current_progress + 1
     trap = request.user.orders.filter(status='scheduled', scheduled_at=next_order_num).first()
-    
     if trap:
         trap.status = 'pending'
-        # Crucial: Use the rate from the model so commission is always correct
         trap.commission_rate = profile.current_rate 
         trap.save()
         return render(request, 'users/confirm_order.html', {'order': trap, 'profile': profile})
-
-    # 3. Standard Balance Check
     if profile.balance < 10:
         messages.error(request, "Minimum $10 balance required to start matching.")
         return redirect('user_order')
-
-    # 4. Find Templates
-    # Look for orders that don't belong to a user and are within the user's balance
     templates = Order.objects.filter(user__isnull=True, price__lte=profile.balance)
-    
     if not templates.exists():
         messages.error(request, "No suitable tasks found for your current balance.")
         return redirect('user_order')
-
-    # 5. Create Standard Match
-    # Pick a random template and create a real order for the user
     template = random.choice(templates)
     order = Order.objects.create(
         user=request.user, 
         product_name=template.product_name,
         price=template.price, 
-        commission_rate=profile.current_rate, # Pulled directly from Profile model property
+        commission_rate=profile.current_rate, 
         status='pending',
         image_url=template.image_url 
     )
-    
     return render(request, 'users/confirm_order.html', {'order': order, 'profile': profile})
 
 @login_required
 def vip_page(request):
-    # Pass both the profile and the config to the template
     return render(request, 'users/user_vip_page.html', {
         'profile': request.user.profile,
         'vip_config': VIP_CONFIG  
@@ -516,7 +462,6 @@ def complete_order(request, order_id):
             if profile.balance < order.price:
                 messages.error(request, "Insufficient funds.")
                 return redirect(f"{reverse('user_record')}?status=pending")
-
             profile.balance += order.profit 
             profile.total_earned += order.profit 
             order.status = 'completed'
@@ -533,18 +478,10 @@ def complete_order(request, order_id):
 
 @login_required(login_url='user_login')
 def user_wallet(request):
-    withdrawal_orders = request.user.orders.filter(
-        status__in=['withdrawal', 'withdrawn', 'rejected']
-    ).order_by('-created_at')
-    
+    withdrawal_orders = request.user.orders.filter(status__in=['withdrawal', 'withdrawn', 'rejected']).order_by('-created_at')
     paginator = Paginator(withdrawal_orders, 5)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    return render(request, 'users/wallet.html', {
-        'profile': request.user.profile,
-        'withdrawals': page_obj
-    })
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'users/wallet.html', {'profile': request.user.profile, 'withdrawals': page_obj})
 
 @login_required(login_url='user_login')
 def withdraw_funds(request):
@@ -555,7 +492,6 @@ def withdraw_funds(request):
             amount = Decimal(request.POST.get('amount', '0'))
         except (InvalidOperation, ValueError):
             amount = Decimal('0')
-
         if pin != profile.withdrawal_pin:
             messages.error(request, "Incorrect 6-digit PIN.")
         elif amount < Decimal('10.00'):
@@ -577,25 +513,15 @@ def withdraw_funds(request):
             messages.success(request, "Withdrawal request submitted.")
             return redirect('withdraw_funds')
     
-    withdrawals = Order.objects.filter(
-        user=request.user, 
-        status__in=['withdrawal', 'withdrawn']
-    ).order_by('-created_at')
-    
+    withdrawals = Order.objects.filter(user=request.user, status__in=['withdrawal', 'withdrawn']).order_by('-created_at')
     paginator = Paginator(withdrawals, 5)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    return render(request, 'users/withdrawal.html', {
-        'profile': profile,
-        'withdrawals': page_obj
-    })
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'users/withdrawal.html', {'profile': profile, 'withdrawals': page_obj})
 
 @login_required(login_url='user_login')
 def security_settings(request):
     profile = request.user.profile
     password_form = PasswordChangeForm(request.user)
-
     if request.method == 'POST':
         if 'update_password' in request.POST:
             password_form = PasswordChangeForm(request.user, request.POST)
@@ -606,12 +532,10 @@ def security_settings(request):
                 return redirect('security_settings')
             else:
                 messages.error(request, "Error updating password.")
-
         elif 'update_pin' in request.POST:
             old_pin = request.POST.get('old_pin')
             new_pin = request.POST.get('new_pin')
             confirm_pin = request.POST.get('confirm_pin')
-
             if old_pin != profile.withdrawal_pin:
                 messages.error(request, "Current Withdrawal PIN is incorrect.")
             elif new_pin != confirm_pin:
@@ -623,11 +547,7 @@ def security_settings(request):
                 profile.save()
                 messages.success(request, "Withdrawal PIN updated successfully!")
                 return redirect('security_settings')
-
-    return render(request, 'users/security.html', {
-        'profile': profile,
-        'password_form': password_form
-    })
+    return render(request, 'users/security.html', {'profile': profile, 'password_form': password_form})
     
 @staff_member_required(login_url='staff_login')
 def approve_withdrawal(request, order_id):

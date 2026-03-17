@@ -58,15 +58,21 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                 <div style="text-align: center;">
                     <div style="font-size: 8px; color: #94a3b8; font-weight: 700;">TODAY</div>
-                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${{ earned_today|default:0|floatformat:2 }}</div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">
+                        ${{ earned_today|default:0|floatformat:2 }}
+                    </div>
                 </div>
                 <div style="text-align: center;">
                     <div style="font-size: 8px; color: #94a3b8; font-weight: 700;">YESTERDAY</div>
-                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${{ earned_yesterday|default:0|floatformat:2 }}</div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">
+                        ${{ earned_yesterday|default:0|floatformat:2 }}
+                    </div>
                 </div>
                 <div style="text-align: center;">
                     <div style="font-size: 8px; color: #94a3b8; font-weight: 700;">MONTH</div>
-                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${{ earned_this_month|default:0|floatformat:2 }}</div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a;">
+                        ${{ earned_this_month|default:0|floatformat:2 }}
+                    </div>
                 </div>
             </div>
         </div>
