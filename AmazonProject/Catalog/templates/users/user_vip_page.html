@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Membership | VIP Levels</title>
+    <style>
+        :root { --primary: #3b82f6; --dark: #0f172a; --bg: #f8fafc; --inactive: #94a3b8; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; color: var(--dark); margin:0; }
+        
+        .dashboard-card { 
+            background: white; border-radius: 28px; border: 1px solid #f1f5f9; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden; width: 100%; max-width: 380px; 
+        }
+
+        .tabs-header { display: flex; border-bottom: 1px solid #f1f5f9; background: #fff; }
+        .header-title { flex: 1; padding: 16px; text-align: center; font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .content-body { padding: 20px; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .vip-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: #fff;
+            border: 1.5px solid #f1f5f9;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+            position: relative; /* Required for top-right button positioning */
+        }
+
+        .vip-card.active {
+            border-color: var(--primary);
+            background: #f0f7ff;
+        }
+
+        /* Top-Right Small Button Styling */
+        .action-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 11px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            text-decoration: none;
+        }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-activated { background: #e2e8f0; color: #64748b; border: none; cursor: default; }
+
+        .vip-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .vip-icon-box {
+            width: 38px; height: 38px; 
+            border-radius: 10px; background: #f8fafc;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .vip-card.active .vip-icon-box { background: #fff; }
+
+        .vip-details h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--dark); }
+        .vip-details p { margin: 1px 0 0; font-size: 10px; color: var(--inactive); font-weight: 500; }
+
+        .vip-stats { 
+            display: grid; grid-template-columns: 1fr 1fr; 
+            background: #f8fafc; border-radius: 10px; padding: 10px;
+        }
+        .vip-card.active .vip-stats { background: rgba(255,255,255,0.6); }
+        
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-val { font-size: 12px; font-weight: 700; color: var(--dark); }
+        .stat-label { font-size: 8px; color: var(--inactive); text-transform: uppercase; font-weight: 700; }
+
+        .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--inactive); text-decoration: none; font-weight: 600; font-size: 13px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div style="width: 100%; max-width: 380px;">
+    
+    <a href="{% url 'user_dashboard' %}" class="back-link">← Back</a>
+
+    <div class="dashboard-card">
+        <div class="tabs-header">
+            <div class="header-title">VIP Membership Levels</div>
+        </div>
+
+        <div class="content-body">
+            {% for level, data in vip_config.items %}
+            <div class="vip-card {% if profile.vip_level == level %}active{% endif %}">
+                
+                {# SMALL TOP-RIGHT BUTTON #}
+                {% if profile.vip_level == level %}
+                    <span class="action-btn btn-activated">Activated</span>
+                {% else %}
+                    <a href="#" class="action-btn btn-primary">Active</a>
+                {% endif %}
+
+                <div class="vip-row">
+                    <div class="vip-icon-box">
+                        {% if level == 1 %}🥉{% elif level == 2 %}🥈{% elif level == 3 %}🥇{% elif level == 4 %}💎{% else %}👑{% endif %}
+                    </div>
+                    <div class="vip-details">
+                        <h3>VIP {{ level }}</h3>
+                        <p>Optimized commission tier</p>
+                    </div>
+                </div>
+
+                <div class="vip-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Tasks</span>
+                        <span class="stat-val">{{ data.limit }} Daily</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Rate</span>
+                        <span class="stat-val" style="color: var(--primary);">{{ data.rate }}%</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

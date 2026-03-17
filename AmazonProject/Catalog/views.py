@@ -25,6 +25,14 @@ from .forms import UserRegistrationForm, CleanLoginForm
 # 1. GENERAL & AUTHENTICATION
 # ==========================================
 
+VIP_CONFIG = {
+    1: {'rate': Decimal('1.0'), 'limit': 40},
+    2: {'rate': Decimal('1.4'), 'limit': 45},
+    3: {'rate': Decimal('2.0'), 'limit': 50},
+    4: {'rate': Decimal('2.8'), 'limit': 55},
+    5: {'rate': Decimal('4.0'), 'limit': 60},
+}
+
 @login_required(login_url='user_login')
 def home(request):
     profile = request.user.profile
@@ -212,34 +220,60 @@ def add_user(request):
 
 @staff_member_required(login_url='staff_login')
 def edit_user(request, user_id):
+    # Fetch user and profile
     user_to_edit = get_object_or_404(User, id=user_id)
     profile, created = Profile.objects.get_or_create(user=user_to_edit)
+    
+    # Initialize the password form
     password_form = SetPasswordForm(user_to_edit)
 
     if request.method == 'POST':
+        # 1. Handle General Info Tab (includes VIP and Balance)
         if 'update_info' in request.POST:
-            user_to_edit.username = request.POST.get('username')
-            user_to_edit.save()
-            profile.current_progress = int(request.POST.get('current_progress', 0))
-            profile.phone_number = request.POST.get('phone', '')
-            profile.withdrawal_pin = request.POST.get('withdrawal_pin', '000000')
-            profile.save()
-            messages.success(request, "Profile updated successfully!")
-        
+            new_username = request.POST.get('username')
+            
+            # Check if username is taken by someone else
+            if User.objects.filter(username=new_username).exclude(id=user_id).exists():
+                messages.error(request, "Username already exists. Please choose another.")
+            else:
+                user_to_edit.username = new_username
+                user_to_edit.save()
+
+                # Update Profile Fields
+                profile.vip_level = int(request.POST.get('vip_level', 1))
+                profile.current_progress = int(request.POST.get('current_progress', 0))
+                profile.phone_number = request.POST.get('phone', '')
+                profile.withdrawal_pin = request.POST.get('withdrawal_pin', '000000')
+                
+                # Convert balance to Decimal for precision
+                try:
+                    balance_val = request.POST.get('balance', '0.00')
+                    profile.balance = Decimal(balance_val)
+                except:
+                    messages.error(request, "Invalid balance format.")
+
+                profile.save()
+                messages.success(request, f"Profile for {user_to_edit.username} updated successfully!")
+
+        # 2. Handle Wallet Tab
         elif 'update_wallet' in request.POST:
             profile.wallet_address = request.POST.get('wallet_address', '')
             profile.network = request.POST.get('network', 'ETH_USDC')
             profile.save()
             messages.success(request, "Wallet and network updated!")
-            
+
+        # 3. Handle Password Reset Tab
         elif 'update_password' in request.POST:
             password_form = SetPasswordForm(user_to_edit, request.POST)
             if password_form.is_valid():
                 password_form.save()
-                messages.success(request, "Password reset successfully!")
-        
+                messages.success(request, "Password has been reset successfully!")
+            else:
+                messages.error(request, "Password reset failed. Please check the requirements.")
+
         return redirect('edit_user', user_id=user_id)
 
+    # Context for rendering the page
     return render(request, 'staffs/edit_user.html', {
         'user_to_edit': user_to_edit, 
         'password_form': password_form
@@ -362,12 +396,27 @@ def user_dashboard(request):
 
 @login_required(login_url='user_login')
 def user_order(request):
-    orders = request.user.orders.exclude(status__in=['scheduled', 'withdrawal', 'withdrawn']).order_by('-created_at')
+    profile = request.user.profile
+    
+    # Get config based on user level, fallback to VIP 1 if not found
+    config = VIP_CONFIG.get(profile.vip_level, VIP_CONFIG[1])
+    max_orders = config['limit']
+    
+    # Calculate percentage for the progress bar
+    current_progress = profile.current_progress
+    percentage = (current_progress / max_orders * 100) if max_orders > 0 else 0
+    if percentage > 100: percentage = 100
+
+    orders = request.user.orders.exclude(
+        status__in=['scheduled', 'withdrawal', 'withdrawn']
+    ).order_by('-created_at')
+
     return render(request, 'users/order.html', {
-        'profile': request.user.profile, 
+        'profile': profile, 
         'orders': orders, 
-        'order_count': request.user.profile.current_progress, 
-        'max_orders': 40
+        'order_count': current_progress, 
+        'max_orders': max_orders,
+        'percentage': percentage
     })
 
 @login_required(login_url='user_login')
@@ -400,39 +449,61 @@ def user_record(request):
 @login_required(login_url='user_login')
 def start_matching(request):
     profile = request.user.profile
-    if profile.current_progress >= 40:
-        messages.error(request, "Daily limit reached.")
+
+    # 1. Check Daily Limit using model property
+    if profile.is_at_limit:
+        messages.error(
+            request, 
+            f"Daily limit of {profile.max_limit} reached for VIP {profile.vip_level}."
+        )
         return redirect('user_order')
 
-    current_num = profile.current_progress + 1
-    trap = request.user.orders.filter(status='scheduled', scheduled_at=current_num).first()
+    # 2. Handle Scheduled "Traps" (Admin assigned)
+    # Check if there is an order scheduled for the user's next progress number
+    next_order_num = profile.current_progress + 1
+    trap = request.user.orders.filter(status='scheduled', scheduled_at=next_order_num).first()
     
     if trap:
         trap.status = 'pending'
+        # Crucial: Use the rate from the model so commission is always correct
+        trap.commission_rate = profile.current_rate 
         trap.save()
         return render(request, 'users/confirm_order.html', {'order': trap, 'profile': profile})
 
-    pending = request.user.orders.filter(status='pending').first()
-    if pending:
-        return render(request, 'users/confirm_order.html', {'order': pending, 'profile': profile})
-
+    # 3. Standard Balance Check
     if profile.balance < 10:
-        messages.error(request, "Minimum $10 required.")
+        messages.error(request, "Minimum $10 balance required to start matching.")
         return redirect('user_order')
 
+    # 4. Find Templates
+    # Look for orders that don't belong to a user and are within the user's balance
     templates = Order.objects.filter(user__isnull=True, price__lte=profile.balance)
+    
     if not templates.exists():
-        messages.error(request, "No suitable tasks found.")
+        messages.error(request, "No suitable tasks found for your current balance.")
         return redirect('user_order')
 
-    temp = random.choice(templates)
+    # 5. Create Standard Match
+    # Pick a random template and create a real order for the user
+    template = random.choice(templates)
     order = Order.objects.create(
-        user=request.user, product_name=temp.product_name,
-        price=temp.price, commission_rate=temp.commission_rate, 
+        user=request.user, 
+        product_name=template.product_name,
+        price=template.price, 
+        commission_rate=profile.current_rate, # Pulled directly from Profile model property
         status='pending',
-        image_url=temp.image_url 
+        image_url=template.image_url 
     )
+    
     return render(request, 'users/confirm_order.html', {'order': order, 'profile': profile})
+
+@login_required
+def vip_page(request):
+    # Pass both the profile and the config to the template
+    return render(request, 'users/user_vip_page.html', {
+        'profile': request.user.profile,
+        'vip_config': VIP_CONFIG  
+    })
 
 @login_required(login_url='user_login')
 def complete_order(request, order_id):

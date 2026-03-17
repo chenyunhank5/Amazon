@@ -53,6 +53,7 @@ urlpatterns = [
     path('wallet/', views.user_wallet, name='user_wallet'),
     path('withdraw/', views.withdraw_funds, name='withdraw_funds'),
     path('records/', views.user_record, name='user_record'),
+    path('vip-levels/', views.vip_page, name='user_vip_page'),
 ]
 
 # This connects the 404 view from your views.py

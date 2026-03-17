@@ -18,18 +18,27 @@
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;" onclick="alert('Company Bio: High-frequency matching services.')">
-                <div style="font-size: 20px;">🏢</div><div style="font-size: 9px; font-weight: 800;">ABOUT</div>
-            </div>
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;" onclick="alert('Rules: One account per user.')">
-                <div style="font-size: 20px;">📜</div><div style="font-size: 9px; font-weight: 800;">RULES</div>
-            </div>
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;" onclick="document.getElementById('certModal').style.display='flex'">
-                <div style="font-size: 20px;">🛡️</div><div style="font-size: 9px; font-weight: 800;">LICENSE</div>
-            </div>
-            <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;">
-                <div style="font-size: 20px;">🎧</div><div style="font-size: 9px; font-weight: 800;">SUPPORT</div>
-            </div>
+            <a href="#" style="text-decoration: none; color: inherit;">
+                <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;">
+                    <div style="font-size: 20px;">🏢</div><div style="font-size: 9px; font-weight: 800;">ABOUT</div>
+                </div>
+            </a>
+            <a href="#" style="text-decoration: none; color: inherit;">
+                <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;">
+                    <div style="font-size: 20px;">📜</div><div style="font-size: 9px; font-weight: 800;">RULES</div>
+                </div>
+            </a>
+            <a href="{% url 'user_vip_page' %}" style="text-decoration: none; color: inherit;">
+                <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;">
+                    <div style="font-size: 20px;">💎</div>
+                    <div style="font-size: 9px; font-weight: 800;">VIP LEVEL</div>
+                </div>
+            </a>
+            <a href="#" style="text-decoration: none; color: inherit;">
+                <div class="dashboard-card" style="padding: 15px 5px; text-align: center; cursor: pointer; border-radius: 12px; background: #fff;">
+                    <div style="font-size: 20px;">🎧</div><div style="font-size: 9px; font-weight: 800;">SUPPORT</div>
+                </div>
+            </a>
         </div>
 
         <div class="dashboard-card" style="padding: 20px; margin-bottom: 20px; border-radius: 16px; background: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
@@ -95,13 +104,6 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-<div id="certModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:20px;">
-    <div class="dashboard-card" style="max-width:350px; width:100%; padding:20px; text-align:center; background: white; border-radius: 16px;">
-        <h3 style="margin-top:0;">Platform License</h3>
-        <button onclick="document.getElementById('certModal').style.display='none'" style="margin-top:20px; width:100%; padding:15px; background:var(--primary); color:white; border:none; border-radius:12px; font-weight:800; cursor: pointer;">CLOSE</button>
     </div>
 </div>
 

@@ -32,16 +32,23 @@
             {% for u in users %}
             <tr style="transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">
-                    <strong style="display:block; color: #1e293b; font-size: 14px;">{{ u.username }}</strong>
-                    <small style="color: #94a3b8; font-family: monospace;">{{ u.profile.phone_number|default:"No phone" }}</small>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div>
+                            <strong style="display:block; color: #1e293b; font-size: 14px;">{{ u.username }}</strong>
+                            <small style="color: #94a3b8; font-family: monospace;">{{ u.profile.phone_number|default:"No phone" }}</small>
+                        </div>
+                    </div>
                 </td>
                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">
                     <span style="color:#10b981; font-weight:700; font-size: 15px;">${{ u.profile.balance|default:"0.00" }}</span>
                 </td>
                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="badge {% if u.profile.current_progress >= 40 %}badge-success{% else %}badge-warning{% endif %}" style="padding: 4px 10px;">
-                            {{ u.profile.current_progress }} / 40
+                        <span class="badge {% if u.profile.is_at_limit %}badge-success{% else %}badge-warning{% endif %}" style="padding: 4px 10px;">
+                            {{ u.profile.current_progress }} / {{ u.profile.max_limit }}
+                        </span>
+                        <span style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; border: 1px solid #e2e8f0; font-weight: 700;white-space: nowrap;">
+                            VIP {{ u.profile.vip_level }}
                         </span>
                     </div>
                 </td>
