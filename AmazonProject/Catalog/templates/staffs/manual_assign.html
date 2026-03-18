@@ -19,9 +19,9 @@
 
         /* Status Badges */
         .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #fff; }
-        .bg-waiting { background: #94a3b8; }
-        .bg-completed { background: #2ecc71; }
-        .bg-pending { background: #f39c12; }
+        .bg-waiting { background: #94a3b8; } /* Queued */
+        .bg-pending { background: #f39c12; } /* Trapped */
+        .bg-completed { background: #2ecc71; } /* Finished */
 
         .badge-trigger { background: #0f172a; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
 
@@ -47,6 +47,7 @@
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-card { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         .modal-field { width: 100%; padding: 12px; border: 2px solid #3498db; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 10px; box-sizing: border-box; outline: none; }
+        .modal-label { font-size: 11px; font-weight: bold; color: #34495e; text-transform: uppercase; margin-top: 15px; display: block; }
     </style>
 </head>
 <body>
@@ -64,14 +65,25 @@
             <a href="{% url 'staffs' %}" class="btn-back">← Back to Dashboard</a>
         </div>
 
+        <div class="card" style="display: flex; justify-content: space-around; text-align: center; background: #0f172a; color: white;">
+            <div>
+                <p style="margin:0; font-size: 12px; color: #94a3b8;">Current Balance</p>
+                <h2 style="margin:5px 0 0 0; color: #2ecc71;">${{ target_user.profile.balance }}</h2>
+            </div>
+            <div>
+                <p style="margin:0; font-size: 12px; color: #94a3b8;">Current Progress</p>
+                <h2 style="margin:5px 0 0 0;">{{ target_user.profile.current_progress }} / 40</h2>
+            </div>
+        </div>
+
         <div class="card">
-            <h3 style="color: #2c3e50; margin-bottom: 20px; border-left: 5px solid #2c3e50; padding-left: 15px;">Scheduled Tasks Record</h3>
+            <h3 style="color: #2c3e50; margin-bottom: 20px; border-left: 5px solid #2c3e50; padding-left: 15px;">Historical Scheduled Tasks Record</h3>
             <table>
                 <thead>
                     <tr>
                         <th>Trigger At</th>
                         <th>Product Name</th>
-                        <th>Price</th>
+                        <th>Recharge Gap Set</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -81,32 +93,34 @@
                     <tr>
                         <td><span class="badge-trigger">Order #{{ order.scheduled_at }}</span></td>
                         <td>{{ order.product_name }}</td>
-                        <td><strong>${{ order.price }}</strong></td>
+                        <td><strong style="color: #e74c3c;">+ ${{ order.price }}</strong></td>
                         <td>
                             {% if order.status == 'completed' %}
-                                <span class="status-badge bg-completed">Completed</span>
+                                <span class="status-badge bg-completed">Finished</span>
                             {% elif order.status == 'pending' %}
                                 <span class="status-badge bg-pending">User Trapped</span>
                             {% else %}
-                                <span class="status-badge bg-waiting">Queued (Hidden)</span>
+                                <span class="status-badge bg-waiting">Queued</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if order.status == 'scheduled' %}
-                                <a href="{% url 'edit_order_staff' order.id %}" class="btn-edit">Edit</a>
+                                <form method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                                    <button type="submit" name="delete_scheduled" class="btn-danger" onclick="return confirm('Remove this trap?')">Delete</button>
+                                </form>
+                            {% elif order.status == 'pending' %}
+                                <span style="color: #f39c12; font-size: 12px; font-weight: bold;">In Progress</span>
+                            {% else %}
+                                <span style="color: #94a3b8; font-size: 11px;">Record Locked</span>
                             {% endif %}
-
-                            <form method="POST" style="display:inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="order_id" value="{{ order.id }}">
-                                <button type="submit" name="delete_scheduled" class="btn-danger" onclick="return confirm('Permanently delete this record?')">Delete</button>
-                            </form>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="5" style="text-align:center; padding: 40px; color: #94a3b8;">
-                            <i>No special tasks currently assigned to this user.</i>
+                            <i>No special tasks found for this user.</i>
                         </td>
                     </tr>
                     {% endfor %}
@@ -116,7 +130,6 @@
 
         <div class="card">
             <h3 style="color: #3498db; margin-bottom: 10px; border-left: 5px solid #3498db; padding-left: 15px;">Assign New Task</h3>
-            <p style="margin-bottom: 25px; color: #7f8c8d;">User's Current Progress: <strong>{{ target_user.profile.current_progress }} / 40</strong></p>
 
             <form method="GET" class="search-container">
                 <input type="text" name="template_search" placeholder="Search Product..." value="{{ template_search_query }}">
@@ -129,7 +142,7 @@
                 <thead>
                     <tr>
                         <th>Product Template</th>
-                        <th>Price</th>
+                        <th>Default Price</th>
                         <th>Commission</th>
                         <th style="text-align: right;">Action</th>
                     </tr>
@@ -141,13 +154,13 @@
                         <td>${{ t.price }}</td>
                         <td>{{ t.commission_rate }}%</td>
                         <td style="text-align: right;">
-                            <button type="button" class="btn-plus" onclick="openAssignModal('{{ t.id }}', '{{ t.product_name|escapejs }}', '{{ t.price }}')">+</button>
+                            <button type="button" class="btn-plus" onclick="openAssignModal('{{ t.id }}', '{{ t.product_name|escapejs }}')">+</button>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="4" style="text-align:center; padding: 40px; color: #94a3b8;">
-                            <i>No templates found matching your criteria.</i>
+                            <i>No templates found.</i>
                         </td>
                     </tr>
                     {% endfor %}
@@ -159,9 +172,7 @@
                 {% if templates.has_previous %}
                     <a href="?page={{ templates.previous_page_number }}&template_search={{ template_search_query }}&price_search={{ price_search_query }}" class="page-link">&laquo;</a>
                 {% endif %}
-
                 <span class="page-info">Page {{ templates.number }} of {{ templates.paginator.num_pages }}</span>
-
                 {% if templates.has_next %}
                     <a href="?page={{ templates.next_page_number }}&template_search={{ template_search_query }}&price_search={{ price_search_query }}" class="page-link">&raquo;</a>
                 {% endif %}
@@ -174,34 +185,39 @@
         <div class="modal-card">
             <form method="POST">
                 {% csrf_token %}
-                <h3 style="margin-top: 0; color: #2c3e50;">Schedule Task</h3>
-                <p style="font-size: 14px; color: #64748b;">
-                    Product: <strong id="modal_prod_name" style="color: #3498db;"></strong><br>
-                    Price: <strong id="modal_prod_price" style="color: #2c3e50;"></strong>
+                <h3 style="margin-top: 0; color: #2c3e50;">Schedule Recharge Task</h3>
+                <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">
+                    Product: <strong id="modal_prod_name" style="color: #3498db;"></strong>
                 </p>
 
                 <input type="hidden" name="template_id" id="modal_template_id">
 
-                <div style="margin-top: 20px;">
-                    <label style="font-size: 11px; font-weight: bold; color: #34495e; text-transform: uppercase;">Trigger at Order #:</label>
-                    <input type="number" name="target_num" id="modal_target_num" class="modal-field" value="{{ target_user.profile.current_progress|add:1 }}" min="1" required>
-                </div>
+                <label class="modal-label">Recharge Gap ($):</label>
+                <input type="number" step="0.01" name="custom_price" id="recharge_input" class="modal-field" placeholder="e.g. 500" required>
+
+                <p style="font-size: 11px; color: #64748b; margin-top: 8px;">
+                    Enter the amount you want the user to be <b>short by</b>.
+                    The final price will adjust to their balance automatically.
+                </p>
+
+                <label class="modal-label">Trigger at Order #:</label>
+                <input type="number" name="target_num" id="modal_target_num" class="modal-field" value="{{ target_user.profile.current_progress|add:1 }}" min="1" required>
 
                 <div style="display: flex; gap: 10px; margin-top: 30px;">
                     <button type="button" onclick="closeAssignModal()" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: #f8fafc; cursor: pointer; font-weight: bold;">Cancel</button>
-                    <button type="submit" style="flex: 2; padding: 12px; border-radius: 8px; border: none; background: #3498db; color: white; cursor: pointer; font-weight: bold;">Schedule Now</button>
+                    <button type="submit" style="flex: 2; padding: 12px; border-radius: 8px; border: none; background: #3498db; color: white; cursor: pointer; font-weight: bold;">Confirm Schedule</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        function openAssignModal(id, name, price) {
+        function openAssignModal(id, name) {
             document.getElementById('modal_template_id').value = id;
             document.getElementById('modal_prod_name').innerText = name;
-            document.getElementById('modal_prod_price').innerText = '$' + price;
+            document.getElementById('recharge_input').value = "";
             document.getElementById('assignModal').style.display = 'flex';
-            document.getElementById('modal_target_num').focus();
+            document.getElementById('recharge_input').focus();
         }
 
         function closeAssignModal() {
@@ -210,9 +226,7 @@
 
         window.onclick = function(event) {
             const modal = document.getElementById('assignModal');
-            if (event.target == modal) {
-                closeAssignModal();
-            }
+            if (event.target == modal) { closeAssignModal(); }
         }
     </script>
 </body>
