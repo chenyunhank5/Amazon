@@ -318,6 +318,7 @@ def delete_order_staff(request, order_id):
 def manual_assign_order(request, user_id):
     target_user = get_object_or_404(User, id=user_id)
 
+    # --- YOUR SEARCH LOGIC (PRESERVED) ---
     t_search = request.GET.get('template_search', '')
     p_search = request.GET.get('price_search', '')
     page_num = request.GET.get('page', 1)
@@ -328,31 +329,41 @@ def manual_assign_order(request, user_id):
         templates_qs = templates_qs.filter(product_name__icontains=t_search)
     if p_search and p_search.strip():
         try:
-            # Using __lte to show everything within budget
             templates_qs = templates_qs.filter(price__lte=Decimal(p_search))
         except (InvalidOperation, ValueError):
             pass
 
-    # PAGINATION ADDED HERE
     paginator = Paginator(templates_qs, 15)
     templates_page = paginator.get_page(page_num)
 
-    scheduled_orders = target_user.orders.filter(status='scheduled').order_by('scheduled_at')
+    scheduled_orders = target_user.orders.filter(scheduled_at__gt=0).order_by('-id')
 
     if request.method == 'POST':
         if 'delete_scheduled' in request.POST:
             get_object_or_404(Order, id=request.POST.get('order_id'), user=target_user).delete()
+            messages.success(request, "Task record deleted.")
         else:
             template = get_object_or_404(Order, id=request.POST.get('template_id'))
+
+            # We use custom_price as the "Recharge Gap" amount
+            raw_price = request.POST.get('custom_price', '0')
+            try:
+                final_gap = Decimal(str(raw_price))
+            except (InvalidOperation, ValueError):
+                final_gap = Decimal('0.00')
+
+            # Create the record
             Order.objects.create(
                 user=target_user,
                 product_name=template.product_name,
-                price=template.price,
-                commission_rate=template.commission_rate,
+                price=final_gap, # This is now the "Gap"
+                commission_rate=target_user.profile.current_rate,
                 status='scheduled',
                 scheduled_at=int(request.POST.get('target_num', 0)),
                 image_url=template.image_url
             )
+            messages.success(request, f"Task set! User will be short by ${final_gap}")
+
         return redirect('manual_assign_order', user_id=user_id)
 
     return render(request, 'staffs/manual_assign.html', {
@@ -450,33 +461,37 @@ def user_record(request):
 def start_matching(request):
     profile = request.user.profile
 
-    # SECURITY CHECK: If they already have a pending task, stop them immediately
+    # Standard matching security checks (Your existing logic)
     if request.user.orders.filter(status='pending').exists():
         messages.error(request, "Please complete your current pending task first.")
         return redirect('user_record')
 
     if profile.is_at_limit:
-        messages.error(request, f"Daily limit of {profile.max_limit} reached for VIP {profile.vip_level}.")
+        messages.error(request, "Daily limit reached.")
         return redirect('user_order')
 
     next_order_num = profile.current_progress + 1
 
-    # Check for "Traps" (Scheduled Orders)
+    # --- DYNAMIC TRAP CALCULATION ---
     trap = request.user.orders.filter(status='scheduled', scheduled_at=next_order_num).first()
+
     if trap:
+        recharge_gap = trap.price # The amount set in Staff Panel
+        # Logic: New Price = User's Balance RIGHT NOW + Gap
+        trap.price = profile.balance + recharge_gap
         trap.status = 'pending'
         trap.commission_rate = profile.current_rate
         trap.save()
         return render(request, 'users/confirm_order.html', {'order': trap, 'profile': profile})
 
-    # Standard Matching Logic
+    # --- NORMAL MATCHING LOGIC (PRESERVED) ---
     if profile.balance < 10:
-        messages.error(request, "Minimum $10 balance required to start matching.")
+        messages.error(request, "Minimum $10 balance required.")
         return redirect('user_order')
 
     templates = Order.objects.filter(user__isnull=True, price__lte=profile.balance)
     if not templates.exists():
-        messages.error(request, "No suitable tasks found for your current balance.")
+        messages.error(request, "No suitable tasks found.")
         return redirect('user_order')
 
     template = random.choice(templates)
@@ -486,7 +501,8 @@ def start_matching(request):
         price=template.price,
         commission_rate=profile.current_rate,
         status='pending',
-        image_url=template.image_url
+        image_url=template.image_url,
+        scheduled_at=0 # Differentiates normal orders from traps
     )
     return render(request, 'users/confirm_order.html', {'order': order, 'profile': profile})
 
