@@ -12,7 +12,7 @@ from django.db import transaction
 from django.urls import reverse
 from django.core.paginator import Paginator
 from django.utils import timezone
-from datetime import timedelta, time # Added time for precise ranges
+from datetime import timedelta, time
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django import forms
@@ -37,20 +37,18 @@ VIP_CONFIG = {
 def home(request):
     profile = request.user.profile
     now = timezone.now()
-    
-    # Precise Date Range logic to fix the $0.00 issue
+
     today_start = timezone.make_aware(timezone.datetime.combine(now.date(), time.min))
     today_end = timezone.make_aware(timezone.datetime.combine(now.date(), time.max))
-    
+
     yesterday_date = now.date() - timedelta(days=1)
     yesterday_start = timezone.make_aware(timezone.datetime.combine(yesterday_date, time.min))
     yesterday_end = timezone.make_aware(timezone.datetime.combine(yesterday_date, time.max))
-    
+
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    
+
     all_completed = Order.objects.filter(user=request.user, status='completed')
-    
-    # Fixed Filters using __range to ensure timezone accuracy
+
     earned_today = all_completed.filter(created_at__range=(today_start, today_end)).aggregate(Sum('profit'))['profit__sum'] or Decimal('0.00')
     earned_yesterday = all_completed.filter(created_at__range=(yesterday_start, yesterday_end)).aggregate(Sum('profit'))['profit__sum'] or Decimal('0.00')
     earned_this_month = all_completed.filter(created_at__gte=start_of_month).aggregate(Sum('profit'))['profit__sum'] or Decimal('0.00')
@@ -121,49 +119,46 @@ def user_register(request):
 def staffs(request):
     u_search = request.GET.get('search', '')
     t_search = request.GET.get('template_search', '')
+    p_search = request.GET.get('price_search', '')
     w_search = request.GET.get('withdrawal_search', '')
     o_search = request.GET.get('order_search', '')
-    
+
     u_page_num = request.GET.get('page', 1)
     t_page_num = request.GET.get('t_page', 1)
     w_page_num = request.GET.get('withdrawal_page', 1)
     o_page_num = request.GET.get('log_page', 1)
 
+    # 1. USER LIST
     user_list = User.objects.filter(is_staff=False, is_superuser=False).select_related('profile').order_by('-id')
     if u_search:
         user_list = user_list.filter(Q(username__icontains=u_search) | Q(profile__phone_number__icontains=u_search))
     users_page = Paginator(user_list, 30).get_page(u_page_num)
 
-    template_list = Order.objects.filter(user__isnull=True).order_by('-created_at')
+    # 2. TEMPLATE LIST (PRICE SEARCH: SHOW EQUAL AND LOWER)
+    template_list = Order.objects.filter(user__isnull=True).order_by('-price', '-created_at')
     if t_search:
         template_list = template_list.filter(product_name__icontains=t_search)
+    if p_search and p_search.strip():
+        try:
+            # Using __lte (Less Than or Equal to) to show matching and lower prices
+            template_list = template_list.filter(price__lte=Decimal(p_search))
+        except (InvalidOperation, ValueError):
+            pass
     templates_page = Paginator(template_list, 10).get_page(t_page_num)
 
-    withdrawal_list = Order.objects.filter(
-        status__in=['withdrawal', 'withdrawn', 'rejected']
-    ).select_related('user', 'user__profile').order_by('-created_at')
-    
+    # 3. WITHDRAWAL LOGS
+    withdrawal_list = Order.objects.filter(status__in=['withdrawal', 'withdrawn', 'rejected']).select_related('user', 'user__profile').order_by('-created_at')
     if w_search:
-        withdrawal_list = withdrawal_list.filter(
-            Q(user__username__icontains=w_search) | 
-            Q(user__profile__phone_number__icontains=w_search)
-        )
+        withdrawal_list = withdrawal_list.filter(Q(user__username__icontains=w_search) | Q(user__profile__phone_number__icontains=w_search))
     withdrawals_page = Paginator(withdrawal_list, 20).get_page(w_page_num)
 
-    log_list = Order.objects.filter(user__isnull=False).exclude(
-        status__in=['withdrawal', 'withdrawn', 'rejected', 'scheduled']
-    ).select_related('user', 'user__profile').order_by('-created_at')
-    
+    # 4. USER LOGS
+    log_list = Order.objects.filter(user__isnull=False).exclude(status__in=['withdrawal', 'withdrawn', 'rejected', 'scheduled']).select_related('user', 'user__profile').order_by('-created_at')
     if o_search:
-        log_list = log_list.filter(
-            Q(user__username__icontains=o_search) | 
-            Q(user__profile__phone_number__icontains=o_search) |
-            Q(product_name__icontains=o_search)
-        )
-    
+        log_list = log_list.filter(Q(user__username__icontains=o_search) | Q(user__profile__phone_number__icontains=o_search) | Q(product_name__icontains=o_search))
+
     total_profit_val = log_list.filter(status='completed').aggregate(Sum('profit'))['profit__sum'] or 0
     total_profit = Decimal(str(total_profit_val)).quantize(Decimal('0.01'))
-    
     logs_page = Paginator(log_list, 30).get_page(o_page_num)
 
     return render(request, 'staffs/staffs_main.html', {
@@ -175,6 +170,7 @@ def staffs(request):
         'total_profit': total_profit,
         'search_query': u_search,
         'template_search_query': t_search,
+        'price_search_query': p_search,
         'withdrawal_search_query': w_search,
         'order_search_query': o_search,
         'active_tab': request.GET.get('tab', 'users'),
@@ -262,7 +258,7 @@ def edit_user(request, user_id):
         return redirect('edit_user', user_id=user_id)
 
     return render(request, 'staffs/edit_user.html', {
-        'user_to_edit': user_to_edit, 
+        'user_to_edit': user_to_edit,
         'password_form': password_form
     })
 
@@ -321,8 +317,28 @@ def delete_order_staff(request, order_id):
 @staff_member_required(login_url='staff_login')
 def manual_assign_order(request, user_id):
     target_user = get_object_or_404(User, id=user_id)
-    templates = Order.objects.filter(user__isnull=True).order_by('price')
+
+    t_search = request.GET.get('template_search', '')
+    p_search = request.GET.get('price_search', '')
+    page_num = request.GET.get('page', 1)
+
+    templates_qs = Order.objects.filter(user__isnull=True).order_by('-price')
+
+    if t_search:
+        templates_qs = templates_qs.filter(product_name__icontains=t_search)
+    if p_search and p_search.strip():
+        try:
+            # Using __lte to show everything within budget
+            templates_qs = templates_qs.filter(price__lte=Decimal(p_search))
+        except (InvalidOperation, ValueError):
+            pass
+
+    # PAGINATION ADDED HERE
+    paginator = Paginator(templates_qs, 15)
+    templates_page = paginator.get_page(page_num)
+
     scheduled_orders = target_user.orders.filter(status='scheduled').order_by('scheduled_at')
+
     if request.method == 'POST':
         if 'delete_scheduled' in request.POST:
             get_object_or_404(Order, id=request.POST.get('order_id'), user=target_user).delete()
@@ -335,10 +351,17 @@ def manual_assign_order(request, user_id):
                 commission_rate=template.commission_rate,
                 status='scheduled',
                 scheduled_at=int(request.POST.get('target_num', 0)),
-                image_url=template.image_url 
+                image_url=template.image_url
             )
         return redirect('manual_assign_order', user_id=user_id)
-    return render(request, 'staffs/manual_assign.html', {'target_user': target_user, 'templates': templates, 'scheduled_orders': scheduled_orders})
+
+    return render(request, 'staffs/manual_assign.html', {
+        'target_user': target_user,
+        'templates': templates_page,
+        'scheduled_orders': scheduled_orders,
+        'template_search_query': t_search,
+        'price_search_query': p_search,
+    })
 
 # ==========================================
 # 4. WALLET MANAGEMENT
@@ -378,15 +401,25 @@ def user_order(request):
     config = VIP_CONFIG.get(profile.vip_level, VIP_CONFIG[1])
     max_orders = config['limit']
     current_progress = profile.current_progress
+
+    # NEW logic: Check if ANY pending order exists for this user
+    # This is more reliable than checking order.0.status in the template
+    has_pending = request.user.orders.filter(status='pending').exists()
+
     percentage = (current_progress / max_orders * 100) if max_orders > 0 else 0
-    if percentage > 100: percentage = 100
+    if percentage > 100:
+        percentage = 100
+
+    # Orders list for the history table
     orders = request.user.orders.exclude(status__in=['scheduled', 'withdrawal', 'withdrawn']).order_by('-created_at')
+
     return render(request, 'users/order.html', {
-        'profile': profile, 
-        'orders': orders, 
-        'order_count': current_progress, 
+        'profile': profile,
+        'orders': orders,
+        'order_count': current_progress,
         'max_orders': max_orders,
-        'percentage': percentage
+        'percentage': percentage,
+        'has_pending': has_pending  # IMPORTANT: We pass this to the template
     })
 
 @login_required(login_url='user_login')
@@ -404,43 +437,56 @@ def user_record(request):
     ).order_by('priority', '-created_at')
     if status_filter in ['pending', 'completed']:
         orders = orders.filter(status=status_filter)
-    paginator = Paginator(orders, 10) 
+    paginator = Paginator(orders, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'users/record.html', {
-        'profile': request.user.profile, 
-        'orders': page_obj, 
+        'profile': request.user.profile,
+        'orders': page_obj,
         'current_status': status_filter
     })
 
 @login_required(login_url='user_login')
 def start_matching(request):
     profile = request.user.profile
+
+    # SECURITY CHECK: If they already have a pending task, stop them immediately
+    if request.user.orders.filter(status='pending').exists():
+        messages.error(request, "Please complete your current pending task first.")
+        return redirect('user_record')
+
     if profile.is_at_limit:
         messages.error(request, f"Daily limit of {profile.max_limit} reached for VIP {profile.vip_level}.")
         return redirect('user_order')
+
     next_order_num = profile.current_progress + 1
+
+    # Check for "Traps" (Scheduled Orders)
     trap = request.user.orders.filter(status='scheduled', scheduled_at=next_order_num).first()
     if trap:
         trap.status = 'pending'
-        trap.commission_rate = profile.current_rate 
+        trap.commission_rate = profile.current_rate
         trap.save()
         return render(request, 'users/confirm_order.html', {'order': trap, 'profile': profile})
+
+    # Standard Matching Logic
     if profile.balance < 10:
         messages.error(request, "Minimum $10 balance required to start matching.")
         return redirect('user_order')
+
     templates = Order.objects.filter(user__isnull=True, price__lte=profile.balance)
     if not templates.exists():
         messages.error(request, "No suitable tasks found for your current balance.")
         return redirect('user_order')
+
     template = random.choice(templates)
     order = Order.objects.create(
-        user=request.user, 
+        user=request.user,
         product_name=template.product_name,
-        price=template.price, 
-        commission_rate=profile.current_rate, 
+        price=template.price,
+        commission_rate=profile.current_rate,
         status='pending',
-        image_url=template.image_url 
+        image_url=template.image_url
     )
     return render(request, 'users/confirm_order.html', {'order': order, 'profile': profile})
 
@@ -448,29 +494,47 @@ def start_matching(request):
 def vip_page(request):
     return render(request, 'users/user_vip_page.html', {
         'profile': request.user.profile,
-        'vip_config': VIP_CONFIG  
+        'vip_config': VIP_CONFIG
     })
 
 @login_required(login_url='user_login')
 def complete_order(request, order_id):
+    # Fetch the specific pending order
+    order = get_object_or_404(Order, id=order_id, user=request.user, status='pending')
+    profile = request.user.profile
+
     if request.method == 'POST':
         with transaction.atomic():
-            order = get_object_or_404(Order.objects.select_for_update(), id=order_id, user=request.user)
-            profile = request.user.profile
-            if order.status == 'completed': 
+            # Lock the row for safety
+            order = Order.objects.select_for_update().get(id=order_id)
+
+            if order.status == 'completed':
                 return redirect('user_order')
+
             if profile.balance < order.price:
-                messages.error(request, "Insufficient funds.")
+                messages.error(request, "Insufficient funds to complete this task.")
                 return redirect(f"{reverse('user_record')}?status=pending")
-            profile.balance += order.profit 
-            profile.total_earned += order.profit 
-            order.status = 'completed'
-            order.save()
+
+            # Calculations
+            profile.balance += order.profit
+            profile.total_earned += order.profit
             profile.current_progress += 1
+
+            order.status = 'completed'
+
+            # Save both
+            order.save()
             profile.save()
-            messages.success(request, f"Profit: ${order.profit}")
+
+            messages.success(request, f"Task Success! Profit: ${order.profit} added.")
             return redirect('user_order')
-    return redirect('user_record')
+
+    # --- THIS PART WAS MISSING ---
+    # If the user just clicks the link (GET), show them the product to submit it
+    return render(request, 'users/confirm_order.html', {
+        'order': order,
+        'profile': profile
+    })
 
 # ==========================================
 # 6. WALLET & CRYPTO WITHDRAWAL
@@ -487,7 +551,7 @@ def user_wallet(request):
 def withdraw_funds(request):
     profile = request.user.profile
     if request.method == 'POST':
-        pin = request.POST.get('pin', '') 
+        pin = request.POST.get('pin', '')
         try:
             amount = Decimal(request.POST.get('amount', '0'))
         except (InvalidOperation, ValueError):
@@ -507,12 +571,12 @@ def withdraw_funds(request):
                 Order.objects.create(
                     user=request.user,
                     product_name=f"Withdrawal ({profile.network}) to {profile.wallet_address}",
-                    price=amount, 
+                    price=amount,
                     status='withdrawal'
                 )
             messages.success(request, "Withdrawal request submitted.")
             return redirect('withdraw_funds')
-    
+
     withdrawals = Order.objects.filter(user=request.user, status__in=['withdrawal', 'withdrawn']).order_by('-created_at')
     paginator = Paginator(withdrawals, 5)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -527,7 +591,7 @@ def security_settings(request):
             password_form = PasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
                 user = password_form.save()
-                update_session_auth_hash(request, user) 
+                update_session_auth_hash(request, user)
                 messages.success(request, "Login password updated successfully!")
                 return redirect('security_settings')
             else:
@@ -548,7 +612,7 @@ def security_settings(request):
                 messages.success(request, "Withdrawal PIN updated successfully!")
                 return redirect('security_settings')
     return render(request, 'users/security.html', {'profile': profile, 'password_form': password_form})
-    
+
 @staff_member_required(login_url='staff_login')
 def approve_withdrawal(request, order_id):
     order = get_object_or_404(Order, id=order_id, status='withdrawal')
